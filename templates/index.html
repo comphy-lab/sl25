@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Adder with Flask</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 50px;
+        }
+        input {
+            margin: 5px;
+            padding: 10px;
+            font-size: 16px;
+        }
+        button {
+            margin: 10px;
+            padding: 10px;
+            font-size: 16px;
+        }
+        #result {
+            margin-top: 20px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+    </style>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+    <h1>Calculate Reynolds number, \(Re = \frac{\rho V_0 D_0}{\mu}\)</h1>
+    <label for="fieldA">Weber number, \(We = \frac{\rho V_0^2 D_0}{\gamma}\):</label>
+    <input type="number" id="fieldA" placeholder="Enter a number">
+    <br>
+    <label for="fieldB">Ohnesorge number, \(Oh = \frac{\mu}{\sqrt{\rho \gamma D_0}}\):</label>
+    <input type="number" id="fieldB" placeholder="Enter a number">
+    <br>
+    <button onclick="sendData()">Add</button>
+    <div id="result"></div>
+
+    <script>
+        async function sendData() {
+            const a = parseFloat(document.getElementById('fieldA').value);
+            const b = parseFloat(document.getElementById('fieldB').value);
+    
+            const response = await fetch('/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({a: a, b: b})
+            });
+    
+            const result = await response.json();
+            document.getElementById('result').innerHTML = `\\(Re = ${result.result}\\)`;
+            MathJax.typeset();
+        }
+    </script>
+</body>
+</html>
