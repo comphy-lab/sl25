@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple Adder with Flask</title>
+    <title>Unifying theory of scaling in drop impact: Forces & maximum spreading diameter</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -29,15 +29,34 @@
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
 <body>
-    <h1>Calculate Reynolds number, \(Re = \frac{\rho V_0 D_0}{\mu}\)</h1>
+    <h1>Unifying theory of scaling in drop impact: Forces & maximum spreading diameter</h1>
+    <h2>Abstract</h2>
+    <p>
+        The dynamics of drop impact on a rigid surface – omnipresent in nature and technology – strongly
+        depends on the droplet’s velocity, its size, and its material properties. The main characteristics are
+        the droplet’s force exerted on the surface and its maximal spreading radius. The crucial question
+        is: How do they depend on the (dimensionless) control parameters, which are the Weber number
+        \(We\) (non-dimensionalized kinetic energy) and the Ohnesorge number \(Oh\) (dimensionless viscosity)?
+        Here we perform direct numerical simulations over the huge parameter range \(1 \leq We \leq 10^3\) and
+        \(10^{-3} \leq Oh \leq 10^2\) and in particular develop a unifying theoretical approach, which is inspired by
+        the Grossmann-Lohse theory for wall-bounded turbulence [J. Fluid Mech. 407, 27 (2000); PRL
+        86, 3316 (2001)]. The key idea is to split the energy dissipation rate into the different phases of
+        the impact process, in which different physical mechanisms dominate. The theory can consistently
+        and quantitatively account for the \(We\) and \(Oh\) dependences of the maximal impact force and the
+        maximal spreading diameter over the huge parameter space. It also clarifies why viscous dissipation
+        plays a significant role during impact, even for low-viscosity droplets (low \(Oh\)), in contrast to what
+        had been assumed in prior theories.
+    </p>
     <label for="fieldA">Weber number, \(We = \frac{\rho V_0^2 D_0}{\gamma}\):</label>
     <input type="number" id="fieldA" placeholder="Enter a number">
     <br>
     <label for="fieldB">Ohnesorge number, \(Oh = \frac{\mu}{\sqrt{\rho \gamma D_0}}\):</label>
     <input type="number" id="fieldB" placeholder="Enter a number">
     <br>
-    <button onclick="sendData()">Add</button>
+    <button onclick="sendData()">Process</button>
     <div id="result"></div>
+
+    <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/pxrWO2GiML8?si=nQrs-Mu5tyFRiNr6" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
     <script>
         async function sendData() {
