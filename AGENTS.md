@@ -6,7 +6,7 @@ This repository is a small Flask website for the SL theory drop-impact calculato
 
 - `app.py` creates the Flask app and registers blueprints.
 - `calculateReynoldsNumber.py` serves `/` and computes Reynolds number on `/add`.
-- `regimeDecide.py` classifies the regime on `/regime`.
+- `regimeDecide.py` classifies the regime and predicts `predBeta` on `/regime`.
 - `templates/index.html` is the only frontend page.
 
 ## Working Rules
@@ -26,9 +26,9 @@ This repository is a small Flask website for the SL theory drop-impact calculato
 ## API Contract
 
 - `POST /add` and `POST /regime` expect JSON with `weberNumber` and `ohnesorgeNumber`.
-- The code only checks presence and numeric conversion. Positive numeric values are the intended inputs.
+- The code checks presence, numeric conversion, and positive values.
 - `/add` returns Reynolds number.
-- `/regime` returns regime labels `I`, `II`, `III`, or `IV`.
+- `/regime` returns regime labels `I`, `II`, `III`, or `IV`, plus `predBeta`.
 
 ## Repo Notes
 

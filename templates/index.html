@@ -43,10 +43,10 @@
         had been assumed in prior theories.
     </p>
     <label for="weber-number">Weber number, \(We = \frac{\rho V_0^2 D_0}{\gamma}\):</label>
-    <input type="number" id="weber-number" placeholder="Enter a number">
+    <input type="number" id="weber-number" placeholder="Enter a number" min="0" step="any">
     <br>
     <label for="ohnesorge-number">Ohnesorge number, \(Oh = \frac{\mu}{\sqrt{\rho \gamma D_0}}\):</label>
-    <input type="number" id="ohnesorge-number" placeholder="Enter a number">
+    <input type="number" id="ohnesorge-number" placeholder="Enter a number" min="0" step="any">
     <br>
     <button onclick="processImpactData()">Process</button>
     <div id="result"></div>
@@ -54,34 +54,78 @@
     <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/pxrWO2GiML8?si=nQrs-Mu5tyFRiNr6" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
     <script>
+        function formatNumber(value) {
+            const numericValue = Number(value);
+
+            if (!Number.isFinite(numericValue)) {
+                return 'undefined';
+            }
+
+            if (numericValue === 0) {
+                return '0';
+            }
+
+            if (Math.abs(numericValue) < 1e-3 || Math.abs(numericValue) >= 1e4) {
+                return numericValue.toExponential(4);
+            }
+
+            return numericValue.toFixed(6).replace(/\.?0+$/, '');
+        }
+
         async function processImpactData() {
             const weberNumber = parseFloat(document.getElementById('weber-number').value);
             const ohnesorgeNumber = parseFloat(document.getElementById('ohnesorge-number').value);
+            const resultElement = document.getElementById('result');
 
-            const reynoldsResponse = await fetch('/add', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ weberNumber, ohnesorgeNumber })
-            });
+            if (!Number.isFinite(weberNumber) || !Number.isFinite(ohnesorgeNumber)) {
+                resultElement.textContent = 'Enter positive numeric values for We and Oh.';
+                return;
+            }
 
-            const reynoldsResult = await reynoldsResponse.json();
-            const reynoldsNumber = reynoldsResult.result;
+            const payload = JSON.stringify({ weberNumber, ohnesorgeNumber });
 
-            const regimeResponse = await fetch('/regime', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ weberNumber, ohnesorgeNumber })
-            });
+            try {
+                const [reynoldsResponse, regimeResponse] = await Promise.all([
+                    fetch('/add', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: payload
+                    }),
+                    fetch('/regime', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: payload
+                    })
+                ]);
 
-            const regimeResult = await regimeResponse.json();
-            const impactRegime = regimeResult.regime;
+                const [reynoldsResult, regimeResult] = await Promise.all([
+                    reynoldsResponse.json(),
+                    regimeResponse.json()
+                ]);
 
-            document.getElementById('result').innerHTML = `\\(Re = ${reynoldsNumber}\\)<br>Regime: ${impactRegime}`;
-            MathJax.typeset();
+                if (!reynoldsResponse.ok) {
+                    throw new Error(reynoldsResult.error || 'Unable to calculate Reynolds number.');
+                }
+
+                if (!regimeResponse.ok) {
+                    throw new Error(regimeResult.error || 'Unable to determine the impact regime.');
+                }
+
+                resultElement.innerHTML =
+                    `\\(Re = ${formatNumber(reynoldsResult.result)}\\)<br>` +
+                    `Regime: ${regimeResult.regime}<br>` +
+                    `predBeta: ${formatNumber(regimeResult.predBeta)}`;
+
+                if (window.MathJax && MathJax.typesetPromise) {
+                    await MathJax.typesetPromise([resultElement]);
+                }
+            } catch (error) {
+                resultElement.textContent = error.message;
+            }
         }
     </script>
 </body>
