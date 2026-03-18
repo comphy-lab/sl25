@@ -1,0 +1,33 @@
+{
+  "description": "1 + viscous branch + capillary branch with an Oh cutoff",
+  "metrics": {
+    "aic": -141195.7937561344,
+    "bic": -141102.21889865486,
+    "mae_abs": 0.030078380683082388,
+    "mae_log": 0.014595909165030849,
+    "max_abs_rel": 0.08679356703093398,
+    "n_parameters": 12.0,
+    "n_points": 17996.0,
+    "oh_monotonic_violations": 0.0,
+    "rmse_abs": 0.05829072017924124,
+    "rmse_log": 0.019768925967302994,
+    "rmse_rel": 0.019696232628881243,
+    "we_monotonic_violations": 0.0
+  },
+  "model": "two_branch_additive",
+  "parameters": {
+    "A_mu": 0.0779645885770099,
+    "A_sigma": 0.0426488104044869,
+    "d": -0.8457995317879817,
+    "e": 0.7769161321378931,
+    "f": 0.729068556060323,
+    "g_sigma": 0.17247408852775598,
+    "log10_B_mu": -0.12472039950113659,
+    "log10_C": 0.017437401394971252,
+    "p_mu": 0.41771134320610886,
+    "p_sigma": 1.860838058058557,
+    "q_mu": 1.134748007840157,
+    "r_mu": 1.0017562956618589
+  },
+  "selected_by": "bic"
+}
