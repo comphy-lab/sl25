@@ -186,6 +186,13 @@ h3 {
     justify-items: start;
 }
 
+.paper-link-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+}
+
 .site-header__links a,
 .inline-link {
     font-size: 0.95rem;
@@ -199,6 +206,19 @@ h3 {
 .site-header__links a:hover,
 .inline-link:hover {
     border-color: var(--color-accent);
+}
+
+.oa-badge {
+    border: 1px solid var(--color-border-strong);
+    border-bottom-width: 1px;
+    border-radius: 999px;
+    padding: 0.18rem 0.55rem;
+    background: var(--color-accent-soft);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    line-height: 1;
 }
 
 .layout {
@@ -532,6 +552,109 @@ input:focus-visible,
     display: block;
 }
 
+.citation-banner {
+    display: grid;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.citation-banner__header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 1rem;
+    align-items: end;
+}
+
+.citation-banner__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    justify-content: flex-end;
+}
+
+.citation-chip {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--color-border-strong);
+    border-radius: 999px;
+    padding: 0.32rem 0.7rem;
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+    text-decoration: none;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.citation-banner__text {
+    max-width: 70ch;
+    color: var(--color-text);
+    font-size: 1rem;
+    line-height: 1.7;
+}
+
+.bibtex-card {
+    border: 1px solid var(--color-border);
+    border-radius: calc(var(--radius-lg) - 8px);
+    background: var(--color-surface-strong);
+    overflow: hidden;
+}
+
+.bibtex-card summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 0.95rem 1.05rem;
+    font-weight: 600;
+    color: var(--color-text);
+    background: color-mix(in srgb, var(--color-surface-strong) 86%, var(--color-accent-soft) 14%);
+}
+
+.bibtex-card summary::-webkit-details-marker {
+    display: none;
+}
+
+.bibtex-card__toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.85rem 1.05rem 0;
+}
+
+.bibtex-card__hint {
+    color: var(--color-muted);
+    font-size: 0.88rem;
+}
+
+.bibtex-copy {
+    border: 1px solid var(--color-border-strong);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--color-accent);
+    font: inherit;
+    font-size: 0.84rem;
+    font-weight: 600;
+    padding: 0.4rem 0.8rem;
+    cursor: pointer;
+}
+
+.bibtex-entry {
+    margin: 0;
+    padding: 1rem 1.05rem 1.1rem;
+    overflow-x: auto;
+    background: color-mix(in srgb, var(--color-body-end) 82%, black 18%);
+    color: #f4f1eb;
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 0.92rem;
+    line-height: 1.55;
+}
+
+.bibtex-entry code {
+    font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+    white-space: pre;
+}
+
 .mjx-container {
     overflow-x: auto;
     overflow-y: hidden;
@@ -581,6 +704,15 @@ input:focus-visible,
         grid-template-columns: 1fr;
     }
 
+    .citation-banner__header {
+        grid-template-columns: 1fr;
+        align-items: start;
+    }
+
+    .citation-banner__links {
+        justify-content: flex-start;
+    }
+
     .output-card--wide {
         grid-column: auto;
     }
@@ -628,7 +760,8 @@ input:focus-visible,
     .site-header,
     .panel,
     .calculator-form button,
-    .theme-toggle {
+    .theme-toggle,
+    .bibtex-copy {
         animation: none;
         transition: none;
     }

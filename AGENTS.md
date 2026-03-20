@@ -6,8 +6,9 @@ This repository is a small Flask website for the SL theory drop-impact calculato
 
 - `app.py` creates the Flask app and registers blueprints.
 - `calculateReynoldsNumber.py` serves `/` and computes Reynolds number on `/add`.
-- `regimeDecide.py` classifies the regime and predicts `predBeta` on `/regime`.
-- `templates/index.html` is the only frontend page.
+- `regimeDecide.py` classifies the regime, predicts `predBeta` on `/regime`, and serves `/regime-diagram.svg`.
+- `phase_diagram_svg.py` renders the server-side SVG for the Weber-Ohnesorge regime map.
+- `templates/index.html` is the only frontend page, with `static/site.css` and `static/site.js` as load-bearing frontend assets.
 
 ## Working Rules
 
@@ -27,7 +28,7 @@ This repository is a small Flask website for the SL theory drop-impact calculato
 
 - `POST /add` and `POST /regime` expect JSON with `weberNumber` and `ohnesorgeNumber`.
 - `GET /regime-diagram.svg` accepts optional `weberNumber`, `ohnesorgeNumber`, and `theme` query params.
-- The code checks presence, numeric conversion, and positive values.
+- The code checks presence, numeric conversion, positivity, and the theory range `1 <= We <= 10^3`, `10^-3 <= Oh <= 10^2`.
 - `/add` returns Reynolds number.
 - `/regime` returns regime labels `I`, `II`, `III`, or `IV`, plus `predBeta`.
 - `/regime-diagram.svg` returns the server-rendered phase diagram SVG.

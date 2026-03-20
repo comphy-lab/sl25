@@ -41,14 +41,14 @@ THEMES = {
         "grid": "#6f6883",
         "text": "#f4eef8",
         "axis": "#efe7f5",
-        "regime_i_fill": "#2f6a61",
-        "regime_ii_fill": "#4f6fb4",
-        "regime_iii_fill": "#9a782a",
-        "regime_iv_fill": "#8b4d64",
+        "regime_i_fill": "#4e8176",
+        "regime_ii_fill": "#6a84b8",
+        "regime_iii_fill": "#ae8f4a",
+        "regime_iv_fill": "#9d677d",
         "boundary": "#e1b7e8",
         "point": "#73ddb3",
         "point_ring": "#c084c8",
-        "fill_alpha": 0.62,
+        "fill_alpha": 0.46,
         "grid_alpha": 0.24,
     },
 }
@@ -134,10 +134,10 @@ def render_phase_diagram_svg(
         axes.plot(we_values, middle_boundary, color=palette["boundary"], linestyle=(0, (4, 3)), linewidth=1.25, zorder=2)
         axes.plot(we_values, upper_boundary, color=palette["boundary"], linestyle=(0, (4, 3)), linewidth=1.25, zorder=2)
 
-        axes.text(2.2, 1.2e-2, r"$\mathrm{I}$", color=palette["axis"], fontsize=17, ha="left", va="center")
-        axes.text(5.5, 1.5e-1, r"$\mathrm{II}$", color=palette["axis"], fontsize=17, ha="center", va="center")
-        axes.text(28, 2.0, r"$\mathrm{III}$", color=palette["axis"], fontsize=17, ha="center", va="center")
-        axes.text(320, 18, r"$\mathrm{IV}$", color=palette["axis"], fontsize=17, ha="center", va="center")
+        axes.text(2.5, 1.5e-2, r"$\mathrm{I}$", color=palette["axis"], fontsize=22.5, ha="left", va="center")
+        axes.text(7.8, 1.4e-1, r"$\mathrm{II}$", color=palette["axis"], fontsize=22.5, ha="center", va="center")
+        axes.text(42, 2.1, r"$\mathrm{III}$", color=palette["axis"], fontsize=22.5, ha="center", va="center")
+        axes.text(520, 38, r"$\mathrm{IV}$", color=palette["axis"], fontsize=22.5, ha="center", va="center")
 
         if (
             weber_number is not None
@@ -162,9 +162,9 @@ def render_phase_diagram_svg(
                 zorder=4,
             )
 
-        axes.set_xlabel(r"$We$", color=palette["axis"], fontsize=17, labelpad=14)
-        axes.set_ylabel(r"$Oh$", color=palette["axis"], fontsize=17, labelpad=12)
-        axes.tick_params(axis="both", which="major", colors=palette["axis"], labelsize=13)
+        axes.set_xlabel(r"$We$", color=palette["axis"], fontsize=21, labelpad=15)
+        axes.set_ylabel(r"$Oh$", color=palette["axis"], fontsize=21, labelpad=13)
+        axes.tick_params(axis="both", which="major", colors=palette["axis"], labelsize=16)
         axes.tick_params(axis="both", which="minor", length=0)
         axes.xaxis.set_major_formatter(LogFormatterMathtext(base=10))
         axes.yaxis.set_major_formatter(LogFormatterMathtext(base=10))
@@ -184,7 +184,7 @@ def render_phase_diagram_svg(
                     linestyle="None",
                     markerfacecolor=palette["point"],
                     markeredgecolor=palette["point"],
-                    markersize=7.5,
+                    markersize=9,
                     label=r"$\mathrm{Your\ input}$",
                 )
             )
@@ -198,7 +198,7 @@ def render_phase_diagram_svg(
             handletextpad=0.5,
             labelspacing=1.15,
             borderaxespad=0.0,
-            fontsize=13,
+            fontsize=16,
         )
         for text in legend.get_texts():
             text.set_color(palette["text"])

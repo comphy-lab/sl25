@@ -5,6 +5,7 @@ from flask import Blueprint, request, jsonify, Response
 
 from SLtheory_prediction import load_model_payload, predict_beta_from_payload
 from phase_diagram_svg import render_phase_diagram_svg
+from theory_ranges import validate_theory_inputs
 
 regime_bp = Blueprint('regime', __name__)
 MODEL_PAYLOAD = load_model_payload(Path(__file__).resolve().with_name('SLtheory_model.json'))
@@ -57,10 +58,9 @@ def decide_regime():
     try:
         weber_number = float(weber_number)
         ohnesorge_number = float(ohnesorge_number)
-        if not math.isfinite(weber_number) or not math.isfinite(ohnesorge_number):
-            return jsonify({'error': 'Inputs must be finite'}), 400
-        if weber_number <= 0 or ohnesorge_number <= 0:
-            return jsonify({'error': 'Inputs must be positive'}), 400
+        validation_error = validate_theory_inputs(weber_number, ohnesorge_number)
+        if validation_error is not None:
+            return jsonify({'error': validation_error}), 400
         row = {'We': weber_number, 'Oh': ohnesorge_number}
         regime = classify_regime(row)
         pred_beta = round(float(predict_beta_from_payload(
@@ -87,6 +87,11 @@ def phase_diagram():
 
     if (weber_number is None) != (ohnesorge_number is None):
         return jsonify({'error': 'Both weberNumber and ohnesorgeNumber are required together'}), 400
+
+    if weber_number is not None and ohnesorge_number is not None:
+        validation_error = validate_theory_inputs(weber_number, ohnesorge_number)
+        if validation_error is not None:
+            return jsonify({'error': validation_error}), 400
 
     svg_markup = render_phase_diagram_svg(
         theme=theme,

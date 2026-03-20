@@ -9,9 +9,27 @@ const resultBeta = document.getElementById("result-beta");
 const themeToggle = document.getElementById("theme-toggle");
 const themeToggleValue = document.getElementById("theme-toggle-value");
 const phaseDiagram = document.getElementById("phase-diagram");
+const bibtexCopyButton = document.getElementById("bibtex-copy");
+const bibtexEntry = document.getElementById("bibtex-entry");
 
 let activeRequestId = 0;
 const THEME_STORAGE_KEY = "sl-theme";
+const MIN_WEBER_NUMBER = 1;
+const MAX_WEBER_NUMBER = 1e3;
+const MIN_OHNESORGE_NUMBER = 1e-3;
+const MAX_OHNESORGE_NUMBER = 1e2;
+const THEORY_RANGE_ERROR = "Theory is valid only for 1 <= We <= 10^3 and 10^-3 <= Oh <= 10^2.";
+
+function isWithinTheoryRange(weberNumber, ohnesorgeNumber) {
+    return (
+        Number.isFinite(weberNumber) &&
+        Number.isFinite(ohnesorgeNumber) &&
+        weberNumber >= MIN_WEBER_NUMBER &&
+        weberNumber <= MAX_WEBER_NUMBER &&
+        ohnesorgeNumber >= MIN_OHNESORGE_NUMBER &&
+        ohnesorgeNumber <= MAX_OHNESORGE_NUMBER
+    );
+}
 
 function updatePhaseDiagram() {
     if (!phaseDiagram) {
@@ -24,7 +42,7 @@ function updatePhaseDiagram() {
     const weberValue = Number(form?.elements?.weberNumber?.value);
     const ohnesorgeValue = Number(form?.elements?.ohnesorgeNumber?.value);
 
-    if (Number.isFinite(weberValue) && Number.isFinite(ohnesorgeValue) && weberValue > 0 && ohnesorgeValue > 0) {
+    if (isWithinTheoryRange(weberValue, ohnesorgeValue)) {
         params.set("weberNumber", String(weberValue));
         params.set("ohnesorgeNumber", String(ohnesorgeValue));
     }
@@ -88,6 +106,25 @@ function resetResultValues() {
     resultBeta.textContent = "--";
 }
 
+async function copyBibtexEntry() {
+    if (!bibtexCopyButton || !bibtexEntry) {
+        return;
+    }
+
+    const originalLabel = bibtexCopyButton.textContent;
+
+    try {
+        await navigator.clipboard.writeText(bibtexEntry.textContent);
+        bibtexCopyButton.textContent = "Copied";
+    } catch (error) {
+        bibtexCopyButton.textContent = "Copy failed";
+    }
+
+    window.setTimeout(() => {
+        bibtexCopyButton.textContent = originalLabel;
+    }, 1600);
+}
+
 async function processImpactData(event) {
     event.preventDefault();
 
@@ -99,6 +136,14 @@ async function processImpactData(event) {
         resultStatus.textContent = "Check the inputs.";
         setResultState("error", "Enter positive numeric values for both Weber and Ohnesorge numbers.");
         resetResultValues();
+        return;
+    }
+
+    if (!isWithinTheoryRange(weberNumber, ohnesorgeNumber)) {
+        resultStatus.textContent = "Outside theory range.";
+        setResultState("error", THEORY_RANGE_ERROR);
+        resetResultValues();
+        updatePhaseDiagram();
         return;
     }
 
@@ -171,3 +216,4 @@ themeToggle?.addEventListener("click", toggleTheme);
 form?.elements?.weberNumber?.addEventListener("input", updatePhaseDiagram);
 form?.elements?.ohnesorgeNumber?.addEventListener("input", updatePhaseDiagram);
 form.addEventListener("submit", processImpactData);
+bibtexCopyButton?.addEventListener("click", copyBibtexEntry);

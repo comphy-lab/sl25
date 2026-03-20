@@ -60,9 +60,24 @@
                         <span id="theme-toggle-value" class="theme-toggle__value">Light</span>
                     </button>
                     <div class="site-header__links">
-                        <a href="https://arxiv.org/abs/2408.12714" target="_blank" rel="noreferrer">
-                            Read the paper
-                        </a>
+                        <div class="paper-link-group">
+                            <a
+                                href="https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.134.104003"
+                                target="_blank"
+                                rel="noreferrer"
+                            >
+                                Read the paper
+                            </a>
+                            <a
+                                class="oa-badge"
+                                href="https://arxiv.org/abs/2408.12714"
+                                target="_blank"
+                                rel="noreferrer"
+                                aria-label="Open access version on arXiv"
+                            >
+                                OA
+                            </a>
+                        </div>
                         <a
                             href="https://www.youtube.com/watch?v=3S_hwkMCx6U&embeds_referring_euri=http%3A%2F%2F127.0.0.1%3A5001%2F"
                             target="_blank"
@@ -186,14 +201,15 @@
                         <div class="field">
                             <label for="weber-number">Weber number</label>
                             <p class="field-hint">
-                                Enter a positive value for \(We\), for example 150.
+                                Valid range: \(1 \leq We \leq 10^3\), for example 150.
                             </p>
                             <input
                                 type="number"
                                 id="weber-number"
                                 name="weberNumber"
                                 placeholder="e.g. 150"
-                                min="0.0000000001"
+                                min="1"
+                                max="1000"
                                 step="any"
                                 inputmode="decimal"
                                 required
@@ -202,14 +218,15 @@
                         <div class="field">
                             <label for="ohnesorge-number">Ohnesorge number</label>
                             <p class="field-hint">
-                                Enter a positive value for \(Oh\), for example 0.08.
+                                Valid range: \(10^{-3} \leq Oh \leq 10^2\), for example 0.08.
                             </p>
                             <input
                                 type="number"
                                 id="ohnesorge-number"
                                 name="ohnesorgeNumber"
                                 placeholder="e.g. 0.08"
-                                min="0.0000000001"
+                                min="0.001"
+                                max="100"
                                 step="any"
                                 inputmode="decimal"
                                 required
@@ -275,6 +292,62 @@
                 </section>
             </aside>
         </main>
+
+        <footer class="citation-banner panel">
+            <div class="citation-banner__header">
+                <div>
+                    <p class="panel-kicker">Citation</p>
+                    <h2>Cite this work</h2>
+                </div>
+                <div class="citation-banner__links">
+                    <a
+                        class="citation-chip"
+                        href="https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.134.104003"
+                        target="_blank"
+                        rel="noreferrer"
+                    >
+                        PRL
+                    </a>
+                    <a
+                        class="citation-chip"
+                        href="https://arxiv.org/abs/2408.12714"
+                        target="_blank"
+                        rel="noreferrer"
+                    >
+                        arXiv
+                    </a>
+                </div>
+            </div>
+            <p class="citation-banner__text">
+                Vatsal Sanjay and Detlef Lohse, “Unifying Theory of Scaling in
+                Drop Impact: Forces and Maximum Spreading Diameter,”
+                <em>Physical Review Letters</em> <strong>134</strong>(10),
+                104003 (2025).
+            </p>
+            <details class="bibtex-card">
+                <summary>BibTeX entry</summary>
+                <div class="bibtex-card__toolbar">
+                    <span class="bibtex-card__hint">Scholar-style export</span>
+                    <button id="bibtex-copy" class="bibtex-copy" type="button">
+                        Copy BibTeX
+                    </button>
+                </div>
+                <pre id="bibtex-entry" class="bibtex-entry"><code>@article{PhysRevLett.134.104003,
+  title = {Unifying Theory of Scaling in Drop Impact: Forces and Maximum Spreading Diameter},
+  author = {Sanjay, Vatsal and Lohse, Detlef},
+  journal = {Phys. Rev. Lett.},
+  volume = {134},
+  issue = {10},
+  pages = {104003},
+  numpages = {9},
+  year = {2025},
+  month = {Mar},
+  publisher = {American Physical Society},
+  doi = {10.1103/PhysRevLett.134.104003},
+  url = {https://link.aps.org/doi/10.1103/PhysRevLett.134.104003}
+}</code></pre>
+            </details>
+        </footer>
     </div>
 </body>
 </html>
