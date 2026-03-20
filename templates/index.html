@@ -3,147 +3,351 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Unifying Theory of Scaling in Drop Impact: Forces & Maximum Spreading Diameter</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 50px;
-        }
-        input, button {
-            margin: 5px;
-            padding: 10px;
-            font-size: 16px;
-        }
-        #result {
-            margin-top: 20px;
-            font-size: 20px;
-            font-weight: bold;
-        }
-    </style>
-    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-</head>
-<body>
-    <h1>Unifying Theory of Scaling in Drop Impact: Forces & Maximum Spreading Diameter</h1>
-    <h2>Abstract</h2>
-    <p>
-        The dynamics of drop impact on a rigid surface – omnipresent in nature and technology – strongly
-        depends on the droplet's velocity, its size, and its material properties. The main characteristics are
-        the droplet's force exerted on the surface and its maximal spreading radius. The crucial question
-        is: How do they depend on the (dimensionless) control parameters, which are the Weber number
-        \(We\) (non-dimensionalized kinetic energy) and the Ohnesorge number \(Oh\) (dimensionless viscosity)?
-        Here we perform direct numerical simulations over the huge parameter range \(1 \leq We \leq 10^3\) and
-        \(10^{-3} \leq Oh \leq 10^2\) and in particular develop a unifying theoretical approach, which is inspired by
-        the Grossmann-Lohse theory for wall-bounded turbulence [J. Fluid Mech. 407, 27 (2000); PRL
-        86, 3316 (2001)]. The key idea is to split the energy dissipation rate into the different phases of
-        the impact process, in which different physical mechanisms dominate. The theory can consistently
-        and quantitatively account for the \(We\) and \(Oh\) dependences of the maximal impact force and the
-        maximal spreading diameter over the huge parameter space. It also clarifies why viscous dissipation
-        plays a significant role during impact, even for low-viscosity droplets (low \(Oh\)), in contrast to what
-        had been assumed in prior theories.
-    </p>
-    <label for="weber-number">Weber number, \(We = \frac{\rho V_0^2 D_0}{\gamma}\):</label>
-    <input type="number" id="weber-number" placeholder="Enter a number" min="0.0000000001" step="any">
-    <br>
-    <label for="ohnesorge-number">Ohnesorge number, \(Oh = \frac{\mu}{\sqrt{\rho \gamma D_0}}\):</label>
-    <input type="number" id="ohnesorge-number" placeholder="Enter a number" min="0.0000000001" step="any">
-    <br>
-    <button id="process-button" onclick="processImpactData()">Process</button>
-    <div id="result"></div>
-
-    <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/pxrWO2GiML8?si=nQrs-Mu5tyFRiNr6" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-
+    <meta
+        name="description"
+        content="Explore the SL theory drop-impact model from Weber and Ohnesorge inputs."
+    >
+    <meta name="color-scheme" content="light dark">
+    <title>SL Theory Drop Impact Calculator</title>
     <script>
-        let activeRequestId = 0;
-
-        function formatNumber(value) {
-            const numericValue = Number(value);
-
-            if (!Number.isFinite(numericValue)) {
-                return 'undefined';
-            }
-
-            if (numericValue === 0) {
-                return '0';
-            }
-
-            if (Math.abs(numericValue) < 1e-3 || Math.abs(numericValue) >= 1e4) {
-                return numericValue.toExponential(4);
-            }
-
-            return numericValue.toFixed(6).replace(/\.?0+$/, '');
-        }
-
-        async function processImpactData() {
-            const weberNumber = parseFloat(document.getElementById('weber-number').value);
-            const ohnesorgeNumber = parseFloat(document.getElementById('ohnesorge-number').value);
-            const resultElement = document.getElementById('result');
-            const processButton = document.getElementById('process-button');
-
-            if (!Number.isFinite(weberNumber) || !Number.isFinite(ohnesorgeNumber) || weberNumber <= 0 || ohnesorgeNumber <= 0) {
-                resultElement.textContent = 'Enter positive numeric values for We and Oh.';
-                return;
-            }
-
-            const requestId = ++activeRequestId;
-            const payload = JSON.stringify({ weberNumber, ohnesorgeNumber });
-            processButton.disabled = true;
-            resultElement.textContent = 'Calculating...';
-
-            try {
-                const [reynoldsResponse, regimeResponse] = await Promise.all([
-                    fetch('/add', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: payload
-                    }),
-                    fetch('/regime', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: payload
-                    })
-                ]);
-
-                const [reynoldsResult, regimeResult] = await Promise.all([
-                    reynoldsResponse.json(),
-                    regimeResponse.json()
-                ]);
-
-                if (requestId !== activeRequestId) {
-                    return;
-                }
-
-                if (!reynoldsResponse.ok) {
-                    throw new Error(reynoldsResult.error || 'Unable to calculate Reynolds number.');
-                }
-
-                if (!regimeResponse.ok) {
-                    throw new Error(regimeResult.error || 'Unable to determine the impact regime.');
-                }
-
-                resultElement.innerHTML =
-                    `\\(Re = ${formatNumber(reynoldsResult.result)}\\)<br>` +
-                    `Regime: ${regimeResult.regime}<br>` +
-                    `predBeta: ${formatNumber(regimeResult.predBeta)}`;
-
-                if (window.MathJax && MathJax.typesetPromise) {
-                    await MathJax.typesetPromise([resultElement]);
-                }
-            } catch (error) {
-                if (requestId !== activeRequestId) {
-                    return;
-                }
-                resultElement.textContent = error.message;
-            } finally {
-                if (requestId === activeRequestId) {
-                    processButton.disabled = false;
-                }
-            }
+        try {
+            const savedTheme = localStorage.getItem("sl-theme");
+            document.documentElement.dataset.theme = savedTheme === "dark" ? "dark" : "light";
+        } catch (error) {
+            document.documentElement.dataset.theme = "light";
         }
     </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap"
+        rel="stylesheet"
+    >
+    <link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script
+        id="MathJax-script"
+        async
+        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+    ></script>
+    <script src="{{ url_for('static', filename='site.js') }}" defer></script>
+</head>
+<body>
+    <div class="page-shell">
+        <header class="site-header">
+            <div class="header-mark">
+                <span class="header-mark__line"></span>
+                <p class="eyebrow">SL theory drop impact calculator</p>
+            </div>
+            <div class="site-header__body">
+                <div class="site-header__copy">
+                    <h1>Unifying theory of scaling in drop impact</h1>
+                    <p class="lede">
+                        A cleaner interface for reading the core idea first, then
+                        evaluating how \(We\) and \(Oh\) set the Reynolds number,
+                        impact regime, and predicted maximum spreading.
+                    </p>
+                </div>
+                <div class="site-header__actions">
+                    <button
+                        id="theme-toggle"
+                        class="theme-toggle"
+                        type="button"
+                        aria-pressed="false"
+                        aria-label="Switch to dark theme"
+                    >
+                        <span class="theme-toggle__caption">Theme</span>
+                        <span id="theme-toggle-value" class="theme-toggle__value">Light</span>
+                    </button>
+                    <div class="site-header__links">
+                        <div class="paper-link-group">
+                            <a
+                                href="https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.134.104003"
+                                target="_blank"
+                                rel="noreferrer"
+                            >
+                                Read the paper
+                            </a>
+                            <a
+                                class="oa-badge"
+                                href="https://arxiv.org/abs/2408.12714"
+                                target="_blank"
+                                rel="noreferrer"
+                                aria-label="Open access version on arXiv"
+                            >
+                                OA
+                            </a>
+                        </div>
+                        <a
+                            href="https://www.youtube.com/watch?v=3S_hwkMCx6U&embeds_referring_euri=http%3A%2F%2F127.0.0.1%3A5001%2F"
+                            target="_blank"
+                            rel="noreferrer"
+                        >
+                            Watch the talk
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="layout">
+            <section class="content-column">
+                <section class="panel panel--intro">
+                    <div class="panel-heading">
+                        <p class="panel-kicker">Overview</p>
+                        <h2>What this page is for</h2>
+                    </div>
+                    <div class="reading-block">
+                        <p>
+                            Drop impact on a rigid surface depends on the
+                            droplet velocity, size, and material properties.
+                            This calculator focuses on the two dimensionless
+                            control parameters that organize the scaling
+                            theory: the Weber number \(We\), which compares
+                            inertia and surface tension, and the Ohnesorge
+                            number \(Oh\), which measures viscous effects.
+                        </p>
+                        <p>
+                            The theory is built from direct numerical
+                            simulations spanning \(1 \leq We \leq 10^3\) and
+                            \(10^{-3} \leq Oh \leq 10^2\). It separates the
+                            dominant dissipation mechanisms across the impact
+                            process and predicts the maximum spreading diameter
+                            while clarifying why viscous dissipation remains
+                            important even at low \(Oh\).
+                        </p>
+                    </div>
+                </section>
+
+                <section class="panel">
+                    <div class="panel-heading">
+                        <p class="panel-kicker">Inputs</p>
+                        <h2>Dimensionless groups</h2>
+                    </div>
+                    <div class="definition-grid">
+                        <article class="definition-card">
+                            <p class="definition-card__title">Weber number</p>
+                            <p class="definition-card__formula">
+                                \(We = \frac{\rho V_0^2 D_0}{\gamma}\)
+                            </p>
+                            <p class="definition-card__text">
+                                Higher values indicate stronger inertial forcing
+                                relative to surface tension.
+                            </p>
+                        </article>
+                        <article class="definition-card">
+                            <p class="definition-card__title">Ohnesorge number</p>
+                            <p class="definition-card__formula">
+                                \(Oh = \frac{\mu}{\sqrt{\rho \gamma D_0}}\)
+                            </p>
+                            <p class="definition-card__text">
+                                Higher values indicate stronger viscous
+                                influence during impact.
+                            </p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="panel">
+                    <div class="panel-heading">
+                        <p class="panel-kicker">Phase diagram</p>
+                        <h2>Weber-Ohnesorge parameter space</h2>
+                    </div>
+                    <div class="diagram-shell">
+                        <img
+                            id="phase-diagram"
+                            class="phase-diagram"
+                            src="/regime-diagram.svg?theme=light"
+                            alt="Phase diagram of the four impact regimes in Weber-Ohnesorge parameter space"
+                        >
+                    </div>
+                </section>
+
+                <section class="panel">
+                    <div class="panel-heading panel-heading--split">
+                        <div>
+                            <p class="panel-kicker">Talk</p>
+                            <h2>Video overview</h2>
+                        </div>
+                        <a
+                            class="inline-link"
+                            href="https://www.youtube.com/watch?v=3S_hwkMCx6U&embeds_referring_euri=http%3A%2F%2F127.0.0.1%3A5001%2F"
+                            target="_blank"
+                            rel="noreferrer"
+                        >
+                            Open on YouTube
+                        </a>
+                    </div>
+                    <div class="video-frame">
+                        <iframe
+                            src="https://www.youtube-nocookie.com/embed/3S_hwkMCx6U"
+                            title="Drop impact theory video overview"
+                            frameborder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            referrerpolicy="strict-origin-when-cross-origin"
+                            allowfullscreen
+                        ></iframe>
+                    </div>
+                </section>
+            </section>
+
+            <aside class="calculator-column">
+                <section class="panel panel--sticky">
+                    <div class="panel-heading">
+                        <p class="panel-kicker">Calculator</p>
+                        <h2>Evaluate a case</h2>
+                    </div>
+                    <form id="impact-form" class="calculator-form" novalidate>
+                        <div class="field">
+                            <label for="weber-number">Weber number</label>
+                            <p class="field-hint">
+                                Valid range: \(1 \leq We \leq 10^3\), for example 150.
+                            </p>
+                            <input
+                                type="number"
+                                id="weber-number"
+                                name="weberNumber"
+                                placeholder="e.g. 150"
+                                min="1"
+                                max="1000"
+                                step="any"
+                                inputmode="decimal"
+                                required
+                            >
+                        </div>
+                        <div class="field">
+                            <label for="ohnesorge-number">Ohnesorge number</label>
+                            <p class="field-hint">
+                                Valid range: \(10^{-3} \leq Oh \leq 10^2\), for example 0.08.
+                            </p>
+                            <input
+                                type="number"
+                                id="ohnesorge-number"
+                                name="ohnesorgeNumber"
+                                placeholder="e.g. 0.08"
+                                min="0.001"
+                                max="100"
+                                step="any"
+                                inputmode="decimal"
+                                required
+                            >
+                        </div>
+                        <button id="process-button" type="submit">
+                            Compute response
+                        </button>
+                    </form>
+
+                    <section class="result-panel" aria-live="polite">
+                        <div class="result-panel__header">
+                            <h3>Results</h3>
+                            <p id="result-status">Enter values to begin.</p>
+                        </div>
+                        <div id="result" class="result-grid" data-state="idle">
+                            <article class="metric-card">
+                                <p class="metric-card__label">Reynolds number</p>
+                                <p id="result-re" class="metric-card__value">--</p>
+                            </article>
+                            <article class="metric-card">
+                                <p class="metric-card__label">Regime</p>
+                                <p id="result-regime" class="metric-card__value">--</p>
+                            </article>
+                            <article class="metric-card">
+                                <p class="metric-card__label">Predicted \(\beta\)</p>
+                                <p id="result-beta" class="metric-card__value">--</p>
+                            </article>
+                        </div>
+                        <p id="result-note" class="result-note">
+                            Results appear here after a successful calculation.
+                            Values are rounded to two decimals.
+                        </p>
+                    </section>
+
+                    <section class="output-panel">
+                        <div class="panel-heading panel-heading--compact">
+                            <p class="panel-kicker">Outputs</p>
+                            <h3>What the model returns</h3>
+                        </div>
+                        <div class="output-grid output-grid--rail">
+                            <article class="output-card">
+                                <p class="output-card__title">Reynolds number</p>
+                                <p class="output-card__text">
+                                    Computed from \(Re = \sqrt{We} / Oh\).
+                                </p>
+                            </article>
+                            <article class="output-card">
+                                <p class="output-card__title">Impact regime</p>
+                                <p class="output-card__text">
+                                    Classified into regimes I through IV from the
+                                    \(We\)-\(Oh\) map.
+                                </p>
+                            </article>
+                            <article class="output-card output-card--wide">
+                                <p class="output-card__title">Predicted \(\beta\)</p>
+                                <p class="output-card__text">
+                                    The model prediction for maximum spreading.
+                                </p>
+                            </article>
+                        </div>
+                    </section>
+                </section>
+            </aside>
+        </main>
+
+        <footer class="citation-banner panel">
+            <div class="citation-banner__header">
+                <div>
+                    <p class="panel-kicker">Citation</p>
+                    <h2>Cite this work</h2>
+                </div>
+                <div class="citation-banner__links">
+                    <a
+                        class="citation-chip"
+                        href="https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.134.104003"
+                        target="_blank"
+                        rel="noreferrer"
+                    >
+                        PRL
+                    </a>
+                    <a
+                        class="citation-chip"
+                        href="https://arxiv.org/abs/2408.12714"
+                        target="_blank"
+                        rel="noreferrer"
+                    >
+                        arXiv
+                    </a>
+                </div>
+            </div>
+            <p class="citation-banner__text">
+                Vatsal Sanjay and Detlef Lohse, “Unifying Theory of Scaling in
+                Drop Impact: Forces and Maximum Spreading Diameter,”
+                <em>Physical Review Letters</em> <strong>134</strong>(10),
+                104003 (2025).
+            </p>
+            <details class="bibtex-card">
+                <summary>BibTeX entry</summary>
+                <div class="bibtex-card__toolbar">
+                    <span class="bibtex-card__hint">Scholar-style export</span>
+                    <button id="bibtex-copy" class="bibtex-copy" type="button">
+                        Copy BibTeX
+                    </button>
+                </div>
+                <pre id="bibtex-entry" class="bibtex-entry"><code>@article{PhysRevLett.134.104003,
+  title = {Unifying Theory of Scaling in Drop Impact: Forces and Maximum Spreading Diameter},
+  author = {Sanjay, Vatsal and Lohse, Detlef},
+  journal = {Phys. Rev. Lett.},
+  volume = {134},
+  issue = {10},
+  pages = {104003},
+  numpages = {9},
+  year = {2025},
+  month = {Mar},
+  publisher = {American Physical Society},
+  doi = {10.1103/PhysRevLett.134.104003},
+  url = {https://link.aps.org/doi/10.1103/PhysRevLett.134.104003}
+}</code></pre>
+            </details>
+        </footer>
+    </div>
 </body>
 </html>

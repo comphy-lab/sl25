@@ -1,7 +1,7 @@
-import math
-
 from flask import Blueprint, request, jsonify, render_template
 import numpy as np
+
+from theory_ranges import validate_theory_inputs
 
 calculate_bp = Blueprint('calculate', __name__)
 
@@ -27,11 +27,10 @@ def add_numbers():
     try:
         weber_number = float(weber_number)
         ohnesorge_number = float(ohnesorge_number)
-        if not math.isfinite(weber_number) or not math.isfinite(ohnesorge_number):
-            return jsonify({'error': 'Inputs must be finite'}), 400
-        if weber_number <= 0 or ohnesorge_number <= 0:
-            return jsonify({'error': 'Inputs must be positive'}), 400
-        reynolds_number = np.sqrt(weber_number) / ohnesorge_number
+        validation_error = validate_theory_inputs(weber_number, ohnesorge_number)
+        if validation_error is not None:
+            return jsonify({'error': validation_error}), 400
+        reynolds_number = round(float(np.sqrt(weber_number) / ohnesorge_number), 2)
         return jsonify({'result': reynolds_number})
     except (TypeError, ValueError):
         return jsonify({'error': 'Invalid input'}), 400
