@@ -19,16 +19,18 @@ This repository is a small Flask website for the SL theory drop-impact calculato
 ## Runtime Facts
 
 - Python version: `python-3.9`.
-- Dependencies: `Flask`, `Flask-SocketIO`, `numpy`.
+- Dependencies: `Flask`, `Flask-SocketIO`, `numpy`, `matplotlib`.
 - Local start command: `python app.py` or `./deploy.sh`.
 - Deployment target: Vercel via `@vercel/python`.
 
 ## API Contract
 
 - `POST /add` and `POST /regime` expect JSON with `weberNumber` and `ohnesorgeNumber`.
+- `GET /regime-diagram.svg` accepts optional `weberNumber`, `ohnesorgeNumber`, and `theme` query params.
 - The code checks presence, numeric conversion, and positive values.
 - `/add` returns Reynolds number.
 - `/regime` returns regime labels `I`, `II`, `III`, or `IV`, plus `predBeta`.
+- `/regime-diagram.svg` returns the server-rendered phase diagram SVG.
 
 ## Repo Notes
 

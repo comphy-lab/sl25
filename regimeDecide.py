@@ -1,9 +1,10 @@
 import math
 from pathlib import Path
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, Response
 
 from SLtheory_prediction import load_model_payload, predict_beta_from_payload
+from phase_diagram_svg import render_phase_diagram_svg
 
 regime_bp = Blueprint('regime', __name__)
 MODEL_PAYLOAD = load_model_payload(Path(__file__).resolve().with_name('SLtheory_model.json'))
@@ -21,6 +22,22 @@ def classify_regime(row):
         return 'IV'
     else:
         return 'Undefined'
+
+
+def _parse_positive_optional_number(raw_value, field_name):
+    if raw_value is None or raw_value == "":
+        return None
+
+    try:
+        numeric_value = float(raw_value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f'{field_name} must be numeric') from exc
+
+    if not math.isfinite(numeric_value):
+        raise ValueError(f'{field_name} must be finite')
+    if numeric_value <= 0:
+        raise ValueError(f'{field_name} must be positive')
+    return numeric_value
 
 @regime_bp.route('/regime', methods=['POST'])
 def decide_regime():
@@ -46,11 +63,36 @@ def decide_regime():
             return jsonify({'error': 'Inputs must be positive'}), 400
         row = {'We': weber_number, 'Oh': ohnesorge_number}
         regime = classify_regime(row)
-        pred_beta = predict_beta_from_payload(
+        pred_beta = round(float(predict_beta_from_payload(
             MODEL_PAYLOAD,
             oh=ohnesorge_number,
             we=weber_number,
-        )
+        )), 2)
         return jsonify({'regime': regime, 'predBeta': pred_beta})
     except (TypeError, ValueError):
         return jsonify({'error': 'Invalid input'}), 400
+
+
+@regime_bp.route('/regime-diagram.svg')
+def phase_diagram():
+    theme = request.args.get('theme', 'light')
+    if theme not in ('light', 'dark'):
+        theme = 'light'
+
+    try:
+        weber_number = _parse_positive_optional_number(request.args.get('weberNumber'), 'weberNumber')
+        ohnesorge_number = _parse_positive_optional_number(request.args.get('ohnesorgeNumber'), 'ohnesorgeNumber')
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+
+    if (weber_number is None) != (ohnesorge_number is None):
+        return jsonify({'error': 'Both weberNumber and ohnesorgeNumber are required together'}), 400
+
+    svg_markup = render_phase_diagram_svg(
+        theme=theme,
+        weber_number=weber_number,
+        ohnesorge_number=ohnesorge_number,
+    )
+    response = Response(svg_markup, mimetype='image/svg+xml')
+    response.headers['Cache-Control'] = 'no-store'
+    return response

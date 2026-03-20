@@ -1,6 +1,62 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+usage() {
+  cat <<'EOF'
+Usage: ./deploy.sh [--port PORT]
+       ./deploy.sh [PORT]
+
+Options:
+  -p, --port PORT  Port to bind the local server to.
+  -h, --help       Show this help message.
+
+Environment:
+  HOST             Bind host (default: 127.0.0.1)
+  PORT             Default port when no CLI port is provided (default: 5000)
+  VENV_DIR         Virtual environment path (default: ./.venv)
+  PYTHON_BIN       Python interpreter used to create the virtual environment
+EOF
+}
+
+CLI_PORT=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -p|--port)
+      if [[ $# -lt 2 ]]; then
+        echo "Error: $1 requires a port value." >&2
+        usage >&2
+        exit 1
+      fi
+      CLI_PORT="$2"
+      shift 2
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    -*)
+      echo "Error: unknown option '$1'." >&2
+      usage >&2
+      exit 1
+      ;;
+    *)
+      if [[ -n "$CLI_PORT" ]]; then
+        echo "Error: multiple port values provided." >&2
+        usage >&2
+        exit 1
+      fi
+      CLI_PORT="$1"
+      shift
+      ;;
+  esac
+done
+
+if [[ -n "$CLI_PORT" ]] && [[ ! "$CLI_PORT" =~ ^[0-9]+$ ]]; then
+  echo "Error: port must be a positive integer." >&2
+  exit 1
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
@@ -16,6 +72,10 @@ fi
 VENV_DIR="${VENV_DIR:-$SCRIPT_DIR/.venv}"
 HOST="${HOST:-127.0.0.1}"
 PORT="${PORT:-5000}"
+
+if [[ -n "$CLI_PORT" ]]; then
+  PORT="$CLI_PORT"
+fi
 
 if [[ ! -d "$VENV_DIR" ]]; then
   echo "Creating virtual environment at $VENV_DIR"

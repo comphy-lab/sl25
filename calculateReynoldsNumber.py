@@ -31,7 +31,7 @@ def add_numbers():
             return jsonify({'error': 'Inputs must be finite'}), 400
         if weber_number <= 0 or ohnesorge_number <= 0:
             return jsonify({'error': 'Inputs must be positive'}), 400
-        reynolds_number = np.sqrt(weber_number) / ohnesorge_number
+        reynolds_number = round(float(np.sqrt(weber_number) / ohnesorge_number), 2)
         return jsonify({'result': reynolds_number})
     except (TypeError, ValueError):
         return jsonify({'error': 'Invalid input'}), 400
