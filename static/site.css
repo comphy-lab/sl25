@@ -27,6 +27,8 @@
     --color-loading-start: rgba(37, 76, 74, 0.08);
     --color-loading-end: rgba(255, 255, 255, 0.9);
     --color-error-border: rgba(146, 63, 52, 0.28);
+    --color-bibtex-bg: #f4efe6;
+    --color-bibtex-text: #2a221a;
     --shadow-soft: 0 18px 40px rgba(35, 29, 23, 0.08);
     --max-width: 1180px;
     --radius-lg: 28px;
@@ -62,6 +64,8 @@
     --color-loading-start: rgba(192, 132, 200, 0.12);
     --color-loading-end: rgba(37, 35, 48, 0.92);
     --color-error-border: rgba(232, 99, 122, 0.32);
+    --color-bibtex-bg: color-mix(in srgb, var(--color-body-end) 82%, black 18%);
+    --color-bibtex-text: #f4f1eb;
     --shadow-soft: 0 26px 56px rgba(0, 0, 0, 0.34);
 }
 
@@ -643,8 +647,9 @@ input:focus-visible,
     margin: 0;
     padding: 1rem 1.05rem 1.1rem;
     overflow-x: auto;
-    background: color-mix(in srgb, var(--color-body-end) 82%, black 18%);
-    color: #f4f1eb;
+    background: var(--color-bibtex-bg);
+    color: var(--color-bibtex-text);
+    border-top: 1px solid var(--color-border);
     font-family: "IBM Plex Sans", sans-serif;
     font-size: 0.92rem;
     line-height: 1.55;
