@@ -1,9 +1,5 @@
 # SL Theory Website
 
-> [!NOTE]
-> **This repository has moved.** The project is now maintained at **[comphy-lab/sl2](https://github.com/comphy-lab/sl2)**.
-> This repository is archived and no longer updated.
-
 # SL Theory Website
 
 Small Flask app for exploring the drop-impact scaling theory described in the paper linked below. The browser collects Weber number `We` and Ohnesorge number `Oh`, then calls JSON endpoints to compute Reynolds number, classify the impact regime, and predict `BetaMax`. The homepage also supports batch CSV uploads for `beta` predictions.
