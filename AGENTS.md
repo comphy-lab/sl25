@@ -25,6 +25,9 @@ This repository is a small Flask website for the SL theory drop-impact calculato
 - Local start command: `python app.py` or `./deploy.sh`.
 - `./deploy.sh` defaults to a non-debug loopback bind and only permits `FLASK_DEBUG=1` with loopback hosts.
 - Deployment target: Vercel via `@vercel/python`.
+- The public `comphy-lab.org/sl25` entry point uses the versioned
+  `cloudflare/sl2-proxy.mjs` Worker. Its Wrangler configuration deliberately
+  keeps `workers.dev` and preview URLs disabled.
 
 ## API Contract
 
@@ -42,4 +45,6 @@ This repository is a small Flask website for the SL theory drop-impact calculato
 - The frontend loads MathJax and a polyfill from external CDNs and embeds a YouTube iframe.
 - There are no automated tests or pinned dependency versions in the repo right now.
 - Requests are capped at 1 MB via `MAX_CONTENT_LENGTH` to keep batch uploads bounded.
+- Cloudflare rate limits protect only requests that traverse `sl2-proxy`; the
+  direct Vercel hostname remains an explicit origin bypass.
 - If you change the calculator logic, update both the frontend copy and the README examples so the behavior stays consistent.

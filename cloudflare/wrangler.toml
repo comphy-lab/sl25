@@ -1,0 +1,24 @@
+name = "sl2-proxy"
+main = "sl2-proxy.mjs"
+# The live API-created Worker has no compatibility date or flags. Cloudflare
+# defines that state as the oldest compatibility date, before flags took effect.
+compatibility_date = "2021-11-02"
+compatibility_flags = []
+workers_dev = false
+preview_urls = false
+
+[[ratelimits]]
+name = "CALC_RATE_LIMITER"
+namespace_id = "25001"
+
+[ratelimits.simple]
+limit = 120
+period = 60
+
+[[ratelimits]]
+name = "BATCH_RATE_LIMITER"
+namespace_id = "25002"
+
+[ratelimits.simple]
+limit = 20
+period = 60

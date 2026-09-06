@@ -70,6 +70,26 @@ The frontend calls `/add` and `/regime` separately after the user submits the in
 
 `vercel.json` routes all traffic to `app.py` using `@vercel/python`, so Vercel is the intended deployment target.
 
+The public `comphy-lab.org/sl25` entry point is served by the Cloudflare
+`sl2-proxy` Worker in `cloudflare/`. Its two rate-limit bindings apply separate
+per-IP, per-route limits to calculation POSTs: 120 requests per minute for each
+of `/add` and `/regime`, and 20 requests per minute for `/batch`. The bare and
+`/sl25`-prefixed forms share counters. Static assets, the phase-diagram GET,
+and other GET requests are not counted. Limited requests receive HTTP 429 with
+`Retry-After: 60`.
+
+Run the Worker tests and validate its deployment bundle from `cloudflare/`:
+
+```bash
+node --test sl2-proxy.test.mjs
+wrangler deploy --dry-run
+```
+
+The rate-limit binding requires Wrangler 4.36.0 or later.
+
+The direct Vercel hostname does not pass through this Worker and is therefore
+outside the edge rate limit.
+
 ## Notes
 
 - The code validates that inputs are present, JSON object shaped, numeric, finite, and positive before doing the Reynolds, regime, or `predBeta` calculations, and batch CSV rows reuse the same theory-range validation.
