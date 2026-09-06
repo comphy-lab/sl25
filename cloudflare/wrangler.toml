@@ -7,6 +7,20 @@ compatibility_flags = []
 workers_dev = false
 preview_urls = false
 
+routes = [
+  { pattern = "comphy-lab.org/add", zone_name = "comphy-lab.org" },
+  { pattern = "comphy-lab.org/sl25*", zone_name = "comphy-lab.org" },
+  { pattern = "comphy-lab.org/regime-diagram*", zone_name = "comphy-lab.org" },
+  { pattern = "comphy-lab.org/batch", zone_name = "comphy-lab.org" },
+  { pattern = "comphy-lab.org/regime", zone_name = "comphy-lab.org" },
+  { pattern = "comphy-lab.org/sl2*", zone_name = "comphy-lab.org" },
+  { pattern = "comphy-lab.org/static/*", zone_name = "comphy-lab.org" },
+  { pattern = "sl25.comphy-lab.org", custom_domain = true },
+]
+
+[vars]
+LEGACY_REDIRECTS = "on"
+
 [[ratelimits]]
 name = "CALC_RATE_LIMITER"
 namespace_id = "25001"
