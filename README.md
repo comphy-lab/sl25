@@ -1,11 +1,9 @@
 # SL Theory Website
 
-# SL Theory Website
-
 Small Flask app for exploring the drop-impact scaling theory described in the paper linked below. The browser collects Weber number `We` and Ohnesorge number `Oh`, then calls JSON endpoints to compute Reynolds number, classify the impact regime, and predict `BetaMax`. The homepage also supports batch CSV uploads for `beta` predictions.
 
 - Paper: https://arxiv.org/abs/2408.12714
-- Live site: https://unifying-theory-website.vercel.app/
+- Live site: [https://sl25.comphy-lab.org/](https://sl25.comphy-lab.org/)
 
 ## What's in the repo
 
@@ -68,30 +66,43 @@ The frontend calls `/add` and `/regime` separately after the user submits the in
 
 ## Deployment
 
-`vercel.json` routes all traffic to `app.py` using `@vercel/python`, so Vercel is the intended deployment target.
+`vercel.json` routes all origin traffic to `app.py` using `@vercel/python`.
+Cloudflare's `sl2-proxy` Worker provides the canonical public hostname and
+proxies accepted requests to that Vercel origin.
 
-The public `comphy-lab.org/sl25` entry point is served by the Cloudflare
-`sl2-proxy` Worker in `cloudflare/`. Its two rate-limit bindings apply separate
-per-IP, per-route limits to calculation POSTs: 120 requests per minute for each
-of `/add` and `/regime`, and 20 requests per minute for `/batch`. The bare and
-`/sl25`-prefixed forms share counters. Static assets, the phase-diagram GET,
-and other GET requests are not counted. Limited requests receive HTTP 429 with
-`Retry-After: 60`.
+The canonical public site is `sl25.comphy-lab.org`. Legacy GET and HEAD requests
+under `comphy-lab.org/sl25` and `comphy-lab.org/sl2` redirect permanently with
+HTTP 308 while preserving the path suffix and query string. Existing root API
+and asset routes on `comphy-lab.org` remain available for compatibility.
+
+The Worker's two rate-limit bindings apply separate per-IP, per-route limits to
+calculation POSTs: 120 requests per minute for each of `/add` and `/regime`, and
+20 requests per minute for `/batch`. Canonical and legacy forms share counters.
+Static assets, the phase-diagram GET, and other GET requests are not counted.
+Limited requests receive HTTP 429 with `Retry-After: 60`. Wrangler disables both
+`workers.dev` and preview URLs.
 
 Run the Worker tests and validate its deployment bundle from `cloudflare/`:
 
 ```bash
 node --test sl2-proxy.test.mjs
-wrangler deploy --dry-run
+npx --yes wrangler@4.78.0 deploy --dry-run
 ```
 
 The rate-limit binding requires Wrangler 4.36.0 or later.
 
-The direct Vercel hostname does not pass through this Worker and is therefore
-outside the edge rate limit.
+### Known limitations
+
+- The public Vercel origin remains directly reachable and bypasses the
+  Cloudflare edge rate limits.
+- Existing root API routes on `comphy-lab.org` remain part of the compatibility
+  surface; a later DNS-only transition for the main site needs separate route
+  planning.
+- Cloudflare's browser-integrity control returns error 1010 for Python's default
+  user agent on both canonical and legacy hosts; browsers and `curl` succeed.
 
 ## Notes
 
 - The code validates that inputs are present, JSON object shaped, numeric, finite, and positive before doing the Reynolds, regime, or `predBeta` calculations, and batch CSV rows reuse the same theory-range validation.
 - `Flask-SocketIO` is used to run the app locally, but there are no socket event handlers in the current app. The helper keeps debug mode off by default and only allows `FLASK_DEBUG=1` on loopback hosts.
-- The page loads MathJax and a polyfill from external CDNs and embeds a YouTube iframe, so full rendering depends on external network access.
+- The page loads MathJax from a CDN and embeds a YouTube iframe, so full rendering depends on external network access. The obsolete polyfill has been removed.
