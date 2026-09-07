@@ -91,10 +91,46 @@ npx --yes wrangler@4.78.0 deploy --dry-run
 
 The rate-limit binding requires Wrangler 4.36.0 or later.
 
+### Origin isolation
+
+The imported WSGI application requires `X-SL25-Origin-Token` on every request,
+including static files and Socket.IO transport paths. The public Worker supplies
+this header from its `SL25_ORIGIN_TOKEN` secret after checking the public route
+and method. Client-supplied credentials are discarded. The hosted application
+stores only the SHA-256 verifier in `origin-auth.json`; the random 256-bit bearer
+must never be committed or exposed to the browser. Missing or malformed origin
+configuration returns a non-cacheable 503; missing or incorrect credentials
+return a non-cacheable 403 before application dispatch.
+
+Vercel Authentication must use **Standard Protection** for this project. It
+protects older, generated and preview deployment URLs; the WSGI verifier protects
+the current production alias that Standard Protection leaves public. Verify both
+boundaries after deployment. Standard Protection is available on the existing
+Hobby plan; the paid All Deployments setting is not required.
+
+For initial delivery, provision the Worker secret and deploy the reviewed proxy
+before deploying the guarded Python application. Verify ordinary canonical and
+legacy requests before moving to the second stage. Upstream redirects are
+rejected, and legacy HTML assets use the canonical public hostname, so the
+credential cannot escape through redirected or browser-issued origin requests.
+Treat token rotation as a coordinated release; zero-downtime rotation needs a
+staged verifier change that temporarily accepts both token digests.
+
+Run the origin and compatibility tests with the repository's Python dependencies:
+
+```bash
+python -m unittest discover -s tests -p 'test_*.py'
+```
+
+For anonymous local development, use `python app.py` or `./deploy.sh`. Both use
+the explicit local entry point and preserve `HOST`, `PORT` and loopback-only
+debug behaviour. Importing `app` through a WSGI server enables the origin guard
+even when Vercel's environment markers are absent.
+
 ### Known limitations
 
-- The public Vercel origin remains directly reachable and bypasses the
-  Cloudflare edge rate limits.
+- The canonical public calculator remains callable within its generous limits;
+  GET requests, including phase diagrams, remain outside the calculation counters.
 - Existing root API routes on `comphy-lab.org` remain part of the compatibility
   surface; a later DNS-only transition for the main site needs separate route
   planning.

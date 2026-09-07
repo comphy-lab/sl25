@@ -45,8 +45,17 @@ This repository is a small Flask website for the SL theory drop-impact calculato
 
 - The frontend loads MathJax from an external CDN and embeds a YouTube iframe;
   the obsolete polyfill has been removed.
-- The Worker has a 16-test Node suite. Python dependency versions remain unpinned.
+- The Worker has a 22-test Node suite and the WSGI boundary has nine Python
+  origin/compatibility tests. Python dependency versions remain unpinned.
 - Requests are capped at 1 MB via `MAX_CONTENT_LENGTH` to keep batch uploads bounded.
-- Cloudflare rate limits protect only requests that traverse `sl2-proxy`; the
-  direct Vercel hostname remains an explicit origin bypass.
+- `SL25_ORIGIN_TOKEN` is a Cloudflare Worker secret; only its SHA-256 verifier
+  belongs in `origin-auth.json`. The imported WSGI app authenticates all requests
+  outside Flask/Socket.IO, while Vercel Standard Protection covers old and preview
+  deployment URLs. Keep both controls and verify them separately after release.
+- The Worker may authenticate only the documented public paths and methods.
+  Never forward client credentials, follow origin redirects with the secret,
+  expose it to browsers, or reopen arbitrary legacy proxy paths.
+- Deploy the credential-bearing Worker before the guarded origin. Local anonymous
+  use goes through `python app.py` or `deploy.sh`; imported WSGI entry points stay
+  protected without relying on a platform environment flag.
 - If you change the calculator logic, update both the frontend copy and the README examples so the behavior stays consistent.

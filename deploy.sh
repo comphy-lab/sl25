@@ -109,29 +109,4 @@ if [[ "$DEBUG_ENABLED" -eq 1 ]]; then
 else
   echo "Starting local server at http://$HOST:$PORT"
 fi
-exec env HOST="$HOST" PORT="$PORT" FLASK_DEBUG="$FLASK_DEBUG" "$VENV_DIR/bin/python" - <<'PY'
-import os
-
-from app import app, socketio
-
-host = os.environ.get("HOST", "127.0.0.1")
-port = int(os.environ.get("PORT", "5000"))
-debug_mode = os.environ.get("FLASK_DEBUG", "0").strip().lower() in {
-    "1",
-    "true",
-    "yes",
-    "on",
-}
-
-if debug_mode and host not in {"127.0.0.1", "::1", "localhost"}:
-    raise SystemExit("FLASK_DEBUG=1 is only supported with loopback HOST values")
-
-socketio.run(
-    app,
-    host=host,
-    port=port,
-    debug=debug_mode,
-    use_reloader=False,
-    allow_unsafe_werkzeug=True,
-)
-PY
+exec env HOST="$HOST" PORT="$PORT" FLASK_DEBUG="$FLASK_DEBUG" "$VENV_DIR/bin/python" "$SCRIPT_DIR/app.py"

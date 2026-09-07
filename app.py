@@ -4,6 +4,8 @@ from flask import Flask, jsonify
 from flask_socketio import SocketIO
 from werkzeug.exceptions import RequestEntityTooLarge
 
+from origin_auth import OriginAuthentication
+
 app = Flask(__name__)
 socketio = SocketIO(app)
 
@@ -27,11 +29,30 @@ def handle_request_entity_too_large(_error):
         {"error": f"File is too large. Maximum upload size is {max_size_mb:.0f} MB."}
     ), 413
 
-if __name__ == '__main__':
+def run_local_server():
+    host = os.environ.get("HOST", "127.0.0.1")
+    port = int(os.environ.get("PORT", "5000"))
     debug_mode = os.getenv("FLASK_DEBUG", "0").strip().lower() in {
         "1",
         "true",
         "yes",
         "on",
     }
-    socketio.run(app, debug=debug_mode)
+    if debug_mode and host not in {"127.0.0.1", "::1", "localhost"}:
+        raise SystemExit("FLASK_DEBUG=1 is only supported with loopback HOST values")
+    socketio.run(
+        app,
+        host=host,
+        port=port,
+        debug=debug_mode,
+        use_reloader=False,
+        allow_unsafe_werkzeug=True,
+    )
+
+
+if __name__ == '__main__':
+    run_local_server()
+else:
+    # Wrap after SocketIO so its transport cannot bypass the origin boundary.
+    # Imported deployments are protected even without platform environment flags.
+    app.wsgi_app = OriginAuthentication(app.wsgi_app)
