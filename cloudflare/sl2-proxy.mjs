@@ -1,5 +1,6 @@
 const VERCEL_BASE = "https://sl2-vatsal-sanjays-projects.vercel.app";
 const CANONICAL_HOST = "sl25.comphy-lab.org";
+const LEGACY_HOST = "comphy-lab.org";
 const LEGACY_REDIRECTS_ON = "on";
 
 const FORWARDED_REQUEST_HEADERS = [
@@ -14,7 +15,7 @@ const RATE_LIMITED_PATHS = new Map([
   ["/batch", "BATCH_RATE_LIMITER"],
 ]);
 
-export function canonicalCalculationPath(requestPath) {
+function normalizedPath(requestPath) {
   let normalizedPath;
   try {
     // decodeURI resolves accepted unreserved aliases such as %61 without
@@ -23,11 +24,12 @@ export function canonicalCalculationPath(requestPath) {
   } catch {
     normalizedPath = requestPath;
   }
-  normalizedPath = normalizedPath.replace(/\/{2,}/g, "/");
+  return normalizedPath.replace(/\/{2,}/g, "/");
+}
 
-  return normalizedPath.startsWith("/sl25/")
-    ? normalizedPath.replace(/^\/sl25/, "")
-    : normalizedPath;
+export function canonicalCalculationPath(requestPath) {
+  const path = normalizedPath(requestPath);
+  return path.startsWith("/sl25/") ? path.replace(/^\/sl25/, "") : path;
 }
 
 export function rateLimitedResponse() {
@@ -66,7 +68,7 @@ export async function applyRateLimit(request, env) {
   return success ? null : rateLimitedResponse();
 }
 
-function upstreamRequestInit(request) {
+function upstreamRequestInit(request, originToken) {
   const headers = new Headers();
   for (const name of FORWARDED_REQUEST_HEADERS) {
     const value = request.headers.get(name);
@@ -75,7 +77,8 @@ function upstreamRequestInit(request) {
     }
   }
 
-  const init = { method: request.method, redirect: "follow", headers };
+  headers.set("x-sl25-origin-token", originToken);
+  const init = { method: request.method, redirect: "manual", headers };
   if (request.method !== "GET" && request.method !== "HEAD") {
     init.body = request.body;
   }
@@ -102,25 +105,64 @@ function isCanonicalPath(path) {
   );
 }
 
-async function proxyToVercel(request, path, rewriteLegacyHtml = false) {
+function proxyError(status, message, headers = {}) {
+  return new Response(JSON.stringify({ error: message }), {
+    status,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "no-store",
+      ...headers,
+    },
+  });
+}
+
+async function proxyToVercel(request, path, env, rewriteLegacyHtml = false) {
+  // Only the public calculator surface may use the Worker's origin credential.
+  const upstreamPath = normalizedPath(path);
+  if (!isCanonicalPath(upstreamPath)) {
+    return proxyError(404, "Not found.");
+  }
+  const methods = RATE_LIMITED_PATHS.has(upstreamPath)
+    ? ["POST", "OPTIONS"]
+    : ["GET", "HEAD", "OPTIONS"];
+  if (!methods.includes(request.method)) {
+    return proxyError(405, "Method not allowed.", { allow: methods.join(", ") });
+  }
+  const originToken = env?.SL25_ORIGIN_TOKEN;
+  if (typeof originToken !== "string" || !/^[0-9a-f]{64}$/.test(originToken)) {
+    return proxyError(503, "Origin authentication is unavailable.");
+  }
+
   const url = new URL(request.url);
-  const resp = await fetch(
-    VERCEL_BASE + path + url.search,
-    upstreamRequestInit(request),
-  );
+  let resp;
+  try {
+    resp = await fetch(
+      VERCEL_BASE + upstreamPath + url.search,
+      upstreamRequestInit(request, originToken),
+    );
+  } catch {
+    return proxyError(502, "Origin request failed.");
+  }
+  // The supported Flask routes do not redirect. Never expose or follow an
+  // upstream redirect with the private credential, including off-origin hops.
+  if (resp.status >= 300 && resp.status < 400) {
+    await resp.body?.cancel().catch(() => {});
+    return proxyError(502, "Unexpected origin redirect.");
+  }
 
   const contentType = resp.headers.get("content-type") || "";
   if (rewriteLegacyHtml && contentType.includes("text/html")) {
     let html = await resp.text();
-    html = html.replace(/href="\/static\//g, `href="${VERCEL_BASE}/static/`);
-    html = html.replace(/src="\/static\//g, `src="${VERCEL_BASE}/static/`);
+    const publicBase = `https://${CANONICAL_HOST}`;
+    html = html.replace(/href="\/static\//g, `href="${publicBase}/static/`);
+    html = html.replace(/src="\/static\//g, `src="${publicBase}/static/`);
     html = html.replace(
       /href="\/regime-diagram/g,
-      `href="${VERCEL_BASE}/regime-diagram`,
+      `href="${publicBase}/regime-diagram`,
     );
     html = html.replace(
       /src="\/regime-diagram/g,
-      `src="${VERCEL_BASE}/regime-diagram`,
+      `src="${publicBase}/regime-diagram`,
     );
     const headers = new Headers(resp.headers);
     headers.set("content-type", "text/html; charset=utf-8");
@@ -140,6 +182,10 @@ export async function handleRequest(request, env) {
   const path = url.pathname;
   const redirectsEnabled = env?.LEGACY_REDIRECTS === LEGACY_REDIRECTS_ON;
 
+  if (url.hostname !== CANONICAL_HOST && url.hostname !== LEGACY_HOST) {
+    return fetch(request);
+  }
+
   if (url.hostname === CANONICAL_HOST && !isCanonicalPath(path)) {
     return new Response("Not found.\n", {
       status: 404,
@@ -153,7 +199,7 @@ export async function handleRequest(request, env) {
   }
 
   if (url.hostname === CANONICAL_HOST) {
-    return proxyToVercel(request, path);
+    return proxyToVercel(request, path, env);
   }
 
   // During the final rollout, move legacy entry GETs to the new hostname.
@@ -177,7 +223,7 @@ export async function handleRequest(request, env) {
       return legacyRedirect(url, /^\/sl25/);
     }
     const strippedPath = path.replace(/^\/sl25/, "") || "/";
-    return proxyToVercel(request, strippedPath, true);
+    return proxyToVercel(request, strippedPath, env, true);
   }
 
   // API + asset routes pass through as-is.
@@ -189,7 +235,7 @@ export async function handleRequest(request, env) {
     "/static/",
   ];
   if (passthroughPaths.some((prefix) => path === prefix || path.startsWith(prefix))) {
-    return proxyToVercel(request, path);
+    return proxyToVercel(request, path, env);
   }
 
   return fetch(request);

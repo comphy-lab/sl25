@@ -6,6 +6,7 @@ compatibility_date = "2021-11-02"
 compatibility_flags = []
 workers_dev = false
 preview_urls = false
+# Provision SL25_ORIGIN_TOKEN as a Worker secret. Never put its value in vars.
 
 routes = [
   { pattern = "comphy-lab.org/add", zone_name = "comphy-lab.org" },

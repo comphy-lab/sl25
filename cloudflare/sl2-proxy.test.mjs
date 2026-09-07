@@ -9,6 +9,8 @@ import {
   rateLimitedResponse,
 } from "./sl2-proxy.mjs";
 
+const ORIGIN_TOKEN = "ab".repeat(32); // Fixed test-only credential.
+
 function createLimiter(maximum) {
   const counts = new Map();
   return {
@@ -56,6 +58,7 @@ test("returns a non-cacheable JSON 429 with Retry-After", async () => {
 
 test("allows 120 calculation requests per route and IP", async () => {
   const env = {
+    SL25_ORIGIN_TOKEN: ORIGIN_TOKEN,
     CALC_RATE_LIMITER: createLimiter(120),
     BATCH_RATE_LIMITER: createLimiter(20),
   };
@@ -74,6 +77,7 @@ test("allows 120 calculation requests per route and IP", async () => {
 
 test("allows 20 batch requests per IP", async () => {
   const env = {
+    SL25_ORIGIN_TOKEN: ORIGIN_TOKEN,
     CALC_RATE_LIMITER: createLimiter(120),
     BATCH_RATE_LIMITER: createLimiter(20),
   };
@@ -87,6 +91,7 @@ test("allows 20 batch requests per IP", async () => {
 
 test("shares counters between bare and /sl25 calculation routes", async () => {
   const env = {
+    SL25_ORIGIN_TOKEN: ORIGIN_TOKEN,
     CALC_RATE_LIMITER: createLimiter(120),
     BATCH_RATE_LIMITER: createLimiter(20),
   };
@@ -112,6 +117,7 @@ test("normalises only accepted slash and unreserved-character aliases", async ()
   assert.equal(canonicalCalculationPath("/sl25/additional"), "/additional");
 
   const env = {
+    SL25_ORIGIN_TOKEN: ORIGIN_TOKEN,
     CALC_RATE_LIMITER: createLimiter(1),
     BATCH_RATE_LIMITER: createLimiter(20),
   };
@@ -122,6 +128,7 @@ test("normalises only accepted slash and unreserved-character aliases", async ()
 
 test("does not count GETs, static assets, diagrams, or unrelated prefixes", async () => {
   const env = {
+    SL25_ORIGIN_TOKEN: ORIGIN_TOKEN,
     CALC_RATE_LIMITER: createLimiter(120),
     BATCH_RATE_LIMITER: createLimiter(20),
   };
@@ -137,6 +144,7 @@ test("does not count GETs, static assets, diagrams, or unrelated prefixes", asyn
 
 test("preserves the legacy /sl2 redirect", async () => {
   const env = {
+    SL25_ORIGIN_TOKEN: ORIGIN_TOKEN,
     CALC_RATE_LIMITER: createLimiter(120),
     BATCH_RATE_LIMITER: createLimiter(20),
   };
@@ -154,6 +162,7 @@ test("preserves the legacy /sl2 redirect", async () => {
 
 test("counts a POST after the method-preserving /sl2 redirect", async () => {
   const env = {
+    SL25_ORIGIN_TOKEN: ORIGIN_TOKEN,
     CALC_RATE_LIMITER: createLimiter(0),
     BATCH_RATE_LIMITER: createLimiter(20),
   };
@@ -170,7 +179,8 @@ test("counts a POST after the method-preserving /sl2 redirect", async () => {
 });
 
 test("missing or off rollout flag preserves the legacy entry behaviour", async () => {
-  for (const env of [{}, { LEGACY_REDIRECTS: "off" }]) {
+  for (const rollout of [{}, { LEGACY_REDIRECTS: "off" }]) {
+    const env = { SL25_ORIGIN_TOKEN: ORIGIN_TOKEN, ...rollout };
     const sl2Response = await handleRequest(
       request("/sl2?theme=dark", "GET"),
       env,
@@ -198,7 +208,7 @@ test("missing or off rollout flag preserves the legacy entry behaviour", async (
         assert.equal(response.headers.get("content-length"), null);
         assert.match(
           await response.text(),
-          /href="https:\/\/sl2-vatsal-sanjays-projects\.vercel\.app\/static\//,
+          /href="https:\/\/sl25\.comphy-lab\.org\/static\//,
         );
       },
     );
@@ -231,6 +241,7 @@ test("enabled rollout redirects legacy GET and HEAD paths to the canonical host"
 
 test("legacy calculation POSTs remain compatible when redirects are enabled", async () => {
   const env = {
+    SL25_ORIGIN_TOKEN: ORIGIN_TOKEN,
     LEGACY_REDIRECTS: "on",
     CALC_RATE_LIMITER: createLimiter(120),
     BATCH_RATE_LIMITER: createLimiter(20),
@@ -283,7 +294,7 @@ test("canonical host serves app and static paths through the same origin", async
     async () => {
       const page = await handleRequest(
         requestAt("https://sl25.comphy-lab.org", "/", { method: "GET" }),
-        {},
+        { SL25_ORIGIN_TOKEN: ORIGIN_TOKEN },
       );
       assert.equal(
         await page.text(),
@@ -294,7 +305,7 @@ test("canonical host serves app and static paths through the same origin", async
         requestAt("https://sl25.comphy-lab.org", "/static/site.css", {
           method: "GET",
         }),
-        {},
+        { SL25_ORIGIN_TOKEN: ORIGIN_TOKEN },
       );
       assert.equal(await asset.text(), "asset");
     },
@@ -308,6 +319,7 @@ test("canonical host serves app and static paths through the same origin", async
 
 test("canonical API keeps content headers and strips credentials upstream", async () => {
   const env = {
+    SL25_ORIGIN_TOKEN: ORIGIN_TOKEN,
     CALC_RATE_LIMITER: createLimiter(120),
     BATCH_RATE_LIMITER: createLimiter(20),
   };
@@ -321,6 +333,8 @@ test("canonical API keeps content headers and strips credentials upstream", asyn
       );
       assert.equal(init.headers.get("content-type"), "application/json");
       assert.equal(init.headers.get("accept"), "application/json");
+      assert.equal(init.headers.get("x-sl25-origin-token"), ORIGIN_TOKEN);
+      assert.equal(init.redirect, "manual");
       assert.equal(init.headers.get("cookie"), null);
       assert.equal(init.headers.get("authorization"), null);
       assert.equal(init.headers.get("cf-access-jwt-assertion"), null);
@@ -339,6 +353,7 @@ test("canonical API keeps content headers and strips credentials upstream", asyn
             "cf-connecting-ip": "203.0.113.8",
             "content-type": "application/json",
             accept: "application/json",
+            "x-sl25-origin-token": "attacker-supplied",
             cookie: "session=private",
             authorization: "Bearer private",
             "cf-access-jwt-assertion": "private",
@@ -357,6 +372,7 @@ test("canonical API keeps content headers and strips credentials upstream", asyn
 
 test("canonical rate limits apply before proxying", async () => {
   const env = {
+    SL25_ORIGIN_TOKEN: ORIGIN_TOKEN,
     CALC_RATE_LIMITER: createLimiter(0),
     BATCH_RATE_LIMITER: createLimiter(20),
   };
@@ -384,6 +400,7 @@ test("canonical rate limits apply before proxying", async () => {
 test("canonical custom domain rejects paths outside the calculator surface", async () => {
   let fetchCalls = 0;
   const env = {
+    SL25_ORIGIN_TOKEN: ORIGIN_TOKEN,
     CALC_RATE_LIMITER: createLimiter(120),
     BATCH_RATE_LIMITER: createLimiter(20),
   };
@@ -409,6 +426,127 @@ test("canonical custom domain rejects paths outside the calculator surface", asy
   assert.equal(fetchCalls, 0);
   assert.equal(env.CALC_RATE_LIMITER.calls, 0);
   assert.equal(env.BATCH_RATE_LIMITER.calls, 0);
+});
+
+test("missing or invalid origin credentials fail closed before fetch", async () => {
+  let fetchCalls = 0;
+  await withMockFetch(
+    async () => { fetchCalls += 1; return new Response("unexpected"); },
+    async () => {
+      for (const token of [undefined, null, "", "wrong", ORIGIN_TOKEN + " "]) {
+        const response = await handleRequest(
+          requestAt("https://sl25.comphy-lab.org", "/", { method: "GET" }),
+          { SL25_ORIGIN_TOKEN: token },
+        );
+        assert.equal(response.status, 503);
+        assert.equal(response.headers.get("cache-control"), "no-store");
+      }
+    },
+  );
+  assert.equal(fetchCalls, 0);
+});
+
+test("legacy aliases share a limit and use one canonical upstream path", async () => {
+  const env = {
+    SL25_ORIGIN_TOKEN: ORIGIN_TOKEN,
+    LEGACY_REDIRECTS: "on",
+    CALC_RATE_LIMITER: createLimiter(2),
+    BATCH_RATE_LIMITER: createLimiter(20),
+  };
+  let fetchCalls = 0;
+  await withMockFetch(
+    async (url, init) => {
+      fetchCalls += 1;
+      assert.equal(url, "https://sl2-vatsal-sanjays-projects.vercel.app/add");
+      assert.equal(init.headers.get("x-sl25-origin-token"), ORIGIN_TOKEN);
+      return new Response("ok");
+    },
+    async () => {
+      for (const path of ["/sl25/%61dd", "/sl25//add"])
+        assert.equal((await handleRequest(request(path), env)).status, 200);
+      assert.equal((await handleRequest(request("/sl25/add"), env)).status, 429);
+    },
+  );
+  assert.equal(fetchCalls, 2);
+});
+
+test("the public Worker cannot authenticate arbitrary legacy origin routes", async () => {
+  const env = {
+    SL25_ORIGIN_TOKEN: ORIGIN_TOKEN,
+    CALC_RATE_LIMITER: createLimiter(120),
+    BATCH_RATE_LIMITER: createLimiter(20),
+  };
+  let fetchCalls = 0;
+  await withMockFetch(
+    async () => { fetchCalls += 1; return new Response("unexpected"); },
+    async () => {
+      for (const path of ["/sl25/socket.io/", "/sl25/admin", "/sl25/additional",
+        "/sl25/sl25/add", "/sl25/%2561dd", "/sl25/%2Fadd"]) {
+        assert.equal((await handleRequest(request(path), env)).status, 404, path);
+      }
+      for (const [path, method] of [["/sl25/static/site.css", "POST"],
+        ["/sl25/add", "GET"], ["/regime", "PUT"]]) {
+        assert.equal((await handleRequest(request(path, method), env)).status, 405);
+      }
+    },
+  );
+  assert.equal(fetchCalls, 0);
+});
+
+test("origin redirects cannot leak the credential or bypass route limits", async () => {
+  for (const status of [301, 302, 307, 308]) {
+    for (const location of ["https://outside.example/", "/regime", "/socket.io/"]) {
+      let fetchCalls = 0;
+      await withMockFetch(
+        async (_url, init) => {
+          fetchCalls += 1;
+          assert.equal(init.redirect, "manual");
+          return new Response("redirect", { status, headers: { location } });
+        },
+        async () => {
+          const response = await handleRequest(request("/sl25", "GET"), {
+            SL25_ORIGIN_TOKEN: ORIGIN_TOKEN,
+          });
+          assert.equal(response.status, 502);
+          assert.equal(response.headers.get("location"), null);
+          assert.equal(response.headers.get("cache-control"), "no-store");
+          assert.equal(fetchCalls, 1);
+        },
+      );
+    }
+  }
+});
+
+test("origin network failures return controlled non-cacheable errors", async () => {
+  await withMockFetch(
+    async () => { throw new Error(`network details ${ORIGIN_TOKEN}`); },
+    async () => {
+      const response = await handleRequest(request("/sl25", "GET"), {
+        SL25_ORIGIN_TOKEN: ORIGIN_TOKEN,
+      });
+      assert.equal(response.status, 502);
+      assert.equal(response.headers.get("cache-control"), "no-store");
+      assert.deepEqual(await response.json(), { error: "Origin request failed." });
+    },
+  );
+});
+
+test("unrelated fallback requests never receive the origin credential", async () => {
+  await withMockFetch(
+    async (input, init) => {
+      assert.ok(input instanceof Request);
+      assert.equal(init, undefined);
+      assert.equal(input.headers.get("x-sl25-origin-token"), null);
+      return new Response("unrelated");
+    },
+    async () => {
+      const env = { SL25_ORIGIN_TOKEN: ORIGIN_TOKEN };
+      assert.equal((await handleRequest(request("/unrelated", "GET"), env)).status, 200);
+      assert.equal((await handleRequest(
+        new Request("https://unrelated.example/add"), env,
+      )).status, 200);
+    },
+  );
 });
 
 test("Wrangler config retains legacy routes, limits, and safe rollout defaults", async () => {
