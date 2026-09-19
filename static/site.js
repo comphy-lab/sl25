@@ -7,13 +7,17 @@ const resultRe = document.getElementById("result-re");
 const resultRegime = document.getElementById("result-regime");
 const resultBeta = document.getElementById("result-beta");
 const themeToggle = document.getElementById("theme-toggle");
-const themeToggleValue = document.getElementById("theme-toggle-value");
+const themeColorMeta = document.querySelector('meta[name="theme-color"]');
 const phaseDiagram = document.getElementById("phase-diagram");
 const bibtexCopyButton = document.getElementById("bibtex-copy");
 const bibtexEntry = document.getElementById("bibtex-entry");
+const footerYear = document.getElementById("footer-year");
 
 let activeRequestId = 0;
-const THEME_STORAGE_KEY = "sl-theme";
+// Shared with the other CoMPhy Lab sites; the old "sl-theme" key is read once
+// in the head boot script for visitors who chose a theme before this key.
+const THEME_STORAGE_KEY = "comphy-theme";
+const EMPTY_VALUE = "–";
 const MIN_WEBER_NUMBER = 1;
 const MAX_WEBER_NUMBER = 1e3;
 const MIN_OHNESORGE_NUMBER = 1e-3;
@@ -50,6 +54,17 @@ function updatePhaseDiagram() {
     phaseDiagram.src = `/regime-diagram.svg?${params.toString()}`;
 }
 
+function syncThemeColor() {
+    if (!themeColorMeta) {
+        return;
+    }
+
+    const paper = getComputedStyle(document.documentElement).getPropertyValue("--c-paper").trim();
+    if (paper) {
+        themeColorMeta.setAttribute("content", paper);
+    }
+}
+
 function applyTheme(theme) {
     const normalizedTheme = theme === "dark" ? "dark" : "light";
     const isDarkTheme = normalizedTheme === "dark";
@@ -64,10 +79,7 @@ function applyTheme(theme) {
         );
     }
 
-    if (themeToggleValue) {
-        themeToggleValue.textContent = isDarkTheme ? "Dark" : "Light";
-    }
-
+    syncThemeColor();
     updatePhaseDiagram();
 }
 
@@ -89,7 +101,7 @@ function formatNumber(value) {
     const numericValue = Number(value);
 
     if (!Number.isFinite(numericValue)) {
-        return "--";
+        return EMPTY_VALUE;
     }
 
     return numericValue.toFixed(2);
@@ -98,12 +110,20 @@ function formatNumber(value) {
 function setResultState(state, note) {
     resultGrid.dataset.state = state;
     resultNote.textContent = note;
+    resultNote.dataset.tone = state === "error" ? "error" : state;
 }
 
 function resetResultValues() {
-    resultRe.textContent = "--";
-    resultRegime.textContent = "--";
-    resultBeta.textContent = "--";
+    resultRe.textContent = EMPTY_VALUE;
+    resultRegime.textContent = EMPTY_VALUE;
+    resultBeta.textContent = EMPTY_VALUE;
+}
+
+async function copyText(text) {
+    if (!navigator.clipboard?.writeText) {
+        throw new Error("Clipboard unavailable");
+    }
+    await navigator.clipboard.writeText(text);
 }
 
 async function copyBibtexEntry() {
@@ -114,7 +134,7 @@ async function copyBibtexEntry() {
     const originalLabel = bibtexCopyButton.textContent;
 
     try {
-        await navigator.clipboard.writeText(bibtexEntry.textContent);
+        await copyText(bibtexEntry.textContent);
         bibtexCopyButton.textContent = "Copied";
     } catch (error) {
         bibtexCopyButton.textContent = "Copy failed";
@@ -123,6 +143,28 @@ async function copyBibtexEntry() {
     window.setTimeout(() => {
         bibtexCopyButton.textContent = originalLabel;
     }, 1600);
+}
+
+function bindCopyable(element) {
+    async function copyValue() {
+        try {
+            await copyText(element.textContent.trim());
+            element.dataset.copied = "true";
+            window.setTimeout(() => {
+                delete element.dataset.copied;
+            }, 600);
+        } catch (error) {
+            // Leave the value in place; the user can still select it manually.
+        }
+    }
+
+    element.addEventListener("click", copyValue);
+    element.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            copyValue();
+        }
+    });
 }
 
 async function processImpactData(event) {
@@ -151,7 +193,7 @@ async function processImpactData(event) {
     const payload = JSON.stringify({ weberNumber, ohnesorgeNumber });
 
     processButton.disabled = true;
-    resultStatus.textContent = "Calculating...";
+    resultStatus.textContent = "Calculating…";
     setResultState("loading", "Fetching the Reynolds number, regime, and predicted spreading.");
 
     try {
@@ -215,8 +257,13 @@ applyTheme(document.documentElement.dataset.theme);
 themeToggle?.addEventListener("click", toggleTheme);
 form?.elements?.weberNumber?.addEventListener("input", updatePhaseDiagram);
 form?.elements?.ohnesorgeNumber?.addEventListener("input", updatePhaseDiagram);
-form.addEventListener("submit", processImpactData);
+form?.addEventListener("submit", processImpactData);
 bibtexCopyButton?.addEventListener("click", copyBibtexEntry);
+document.querySelectorAll(".copyable").forEach(bindCopyable);
+
+if (footerYear) {
+    footerYear.textContent = String(new Date().getFullYear());
+}
 
 // ── Batch CSV upload ────────────────────────────────────────────────
 
@@ -286,8 +333,8 @@ bibtexCopyButton?.addEventListener("click", copyBibtexEntry);
             previewWrap.hidden = false;
 
             const msg = rowErrors
-                ? "Done (some rows had parse errors — see CSV for details)."
-                : "Done — \u03B2 filled in for all rows.";
+                ? "Done. Some rows were outside the theory range or could not be parsed; see the CSV."
+                : "Done. β filled in for all rows.";
             setStatus(msg, rowErrors ? "err" : "ok");
         } catch (err) {
             setStatus("Error: " + err.message, "err");
@@ -311,6 +358,7 @@ bibtexCopyButton?.addEventListener("click", copyBibtexEntry);
         const hrow  = thead.insertRow();
         header.forEach(function (h) {
             const th = document.createElement("th");
+            th.scope = "col";
             th.textContent = h;
             hrow.appendChild(th);
         });
@@ -333,7 +381,7 @@ bibtexCopyButton?.addEventListener("click", copyBibtexEntry);
             const td = tr.insertCell();
             td.colSpan  = header.length;
             td.className = "more-rows";
-            td.textContent = "\u2026 " + (parsedRows.length - 11) + " more rows (download to see all)";
+            td.textContent = "… " + (parsedRows.length - 11) + " more rows (download to see all)";
         }
     }
 

@@ -18,8 +18,11 @@ SLtheoryWebsite/
   SLtheory_prediction.py
   SLtheory_model.json
   static/
+    tokens.css
     site.css
     site.js
+    comphy-lab-mark.png
+    favicon-96x96.png
   templates/index.html
   requirements.txt
   runtime.txt
@@ -27,6 +30,21 @@ SLtheoryWebsite/
 ```
 
 `app.py` creates the Flask app, registers the blueprints, caps request bodies at 1 MB, and runs the server locally. `calculateReynoldsNumber.py` serves the homepage and computes Reynolds number. `regimeDecide.py` classifies the regime from `We` and `Oh` and returns the model-based `predBeta` prediction using `SLtheory_prediction.py` and `SLtheory_model.json`. `batchProcess.py` accepts CSV uploads with `We` and `Oh` columns, reuses the same theory-range validation as `/regime`, and returns a CSV with `beta` filled in or `error` for invalid rows. The phase diagram is rendered in Python by `phase_diagram_svg.py`. The frontend is split between `templates/index.html`, `static/site.css`, and `static/site.js`.
+
+### Design system
+
+The page follows the [CoMPhy Lab design system](https://github.com/comphy-lab/comphy-design-system).
+`static/tokens.css` is a verbatim copy of the upstream `tokens.css`, with a
+provenance header naming the upstream commit; do not edit it here. Change a
+core colour in the design-system repository, then re-vendor the file.
+`static/site.css` composes the token primitives (`.panel`, `.card`, `.eyebrow`,
+`.btn`, `.field`, `.input`, `.chip`, `.hero-title`) into the calculator layout
+and never redefines a token. The page loads the same Google Fonts set as
+comphy-lab.org (Cormorant Garamond for the hero wordmark, Fraunces for
+headings, IBM Plex Sans and Mono for body and code). `phase_diagram_svg.py`
+draws the server-side SVG with the same paper, ink and brand hues, so the
+figure matches the page in both themes. The theme choice is stored under the
+shared `comphy-theme` key and falls back to the OS preference.
 
 ## Local run
 

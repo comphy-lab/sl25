@@ -1,28 +1,43 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta
         name="description"
-        content="Explore the SL theory drop-impact model from Weber and Ohnesorge inputs."
+        content="Compute the Reynolds number, dissipation regime and predicted maximum spreading of an impacting drop from its Weber and Ohnesorge numbers, following Sanjay and Lohse, Phys. Rev. Lett. 134, 104003 (2025)."
     >
     <meta name="color-scheme" content="light dark">
-    <title>SL Theory Drop Impact Calculator</title>
+    <meta name="theme-color" content="#f3efe8">
+    <title>SL theory · Drop-impact calculator · CoMPhy Lab</title>
+    <link rel="icon" type="image/png" sizes="96x96" href="{{ url_for('static', filename='favicon-96x96.png') }}">
     <script>
-        try {
-            const savedTheme = localStorage.getItem("sl-theme");
-            document.documentElement.dataset.theme = savedTheme === "dark" ? "dark" : "light";
-        } catch (error) {
-            document.documentElement.dataset.theme = "light";
-        }
+        // Flash-free theme boot. The stored choice wins; a first visit follows the OS.
+        (function () {
+            var theme = null;
+            try {
+                theme = localStorage.getItem("comphy-theme") || localStorage.getItem("sl-theme");
+            } catch (error) {
+                theme = null;
+            }
+            if (theme !== "dark" && theme !== "light") {
+                theme = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+                    ? "dark"
+                    : "light";
+            }
+            document.documentElement.dataset.theme = theme;
+        })();
     </script>
+    <!-- CoMPhy Lab type roles: Cormorant italic (hero wordmark only) · Fraunces (headings)
+         · IBM Plex Sans (body, UI) · IBM Plex Mono (code, DOI). Same set as comphy-lab.org. -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,500;1,600&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
         rel="stylesheet"
     >
+    <!-- Design-system tokens first, page styles second. site.css only references tokens. -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='tokens.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}">
     <script
         id="MathJax-script"
@@ -31,148 +46,201 @@
     ></script>
     <script src="{{ url_for('static', filename='site.js') }}" defer></script>
 </head>
-<body>
-    <div class="page-shell">
-        <header class="site-header">
-            <div class="header-mark">
-                <span class="header-mark__line"></span>
-                <p class="eyebrow">SL theory drop impact calculator</p>
+<body id="top">
+    <a class="skip" href="#calculator">Skip to the calculator</a>
+
+    <header class="site-header">
+        <div class="site-header__inner">
+            <a class="site-header__brand" href="https://comphy-lab.org/" aria-label="CoMPhy Lab home">
+                <img src="{{ url_for('static', filename='comphy-lab-mark.png') }}" alt="" width="48" height="32" decoding="async">
+                <span>CoMPhy Lab</span>
+            </a>
+            <nav class="site-header__nav" aria-label="Page sections">
+                <a href="#calculator">Calculator</a>
+                <a href="#phase-diagram-section">Phase diagram</a>
+                <a href="#batch-section">Batch</a>
+                <a href="#cite">Cite</a>
+            </nav>
+            <div class="site-header__tools">
+                <a
+                    class="icon-link"
+                    href="https://github.com/comphy-lab/sl25"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Source on GitHub"
+                    title="Source on GitHub"
+                >
+                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .3A12 12 0 0 0 0 12.3c0 5.3 3.4 9.8 8.2 11.4.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.5-1.3-1.3-1.7-1.3-1.7-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1.1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.8-1.6-2.7-.3-5.5-1.3-5.5-6 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.7 1.7.2 2.9.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.7-2.8 5.7-5.5 6 .4.4.8 1.1.8 2.3v3.4c0 .3.2.7.8.6A12 12 0 0 0 24 12.3 12 12 0 0 0 12 .3z"/></svg>
+                </a>
+                <button
+                    id="theme-toggle"
+                    class="theme-toggle"
+                    type="button"
+                    aria-pressed="false"
+                    aria-label="Switch to dark theme"
+                    title="Toggle theme"
+                >
+                    <svg class="theme-icon icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+                    <svg class="theme-icon icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+                </button>
             </div>
-            <div class="site-header__body">
-                <div class="site-header__copy">
-                    <h1>Unifying theory of scaling in drop impact</h1>
-                    <p class="lede">
-                        A cleaner interface for reading the core idea first, then
-                        evaluating how \(We\) and \(Oh\) set the Reynolds number,
-                        impact regime, and predicted maximum spreading.
-                    </p>
-                </div>
-                <div class="site-header__actions">
-                    <button
-                        id="theme-toggle"
-                        class="theme-toggle"
-                        type="button"
-                        aria-pressed="false"
-                        aria-label="Switch to dark theme"
-                    >
-                        <span class="theme-toggle__caption">Theme</span>
-                        <span id="theme-toggle-value" class="theme-toggle__value">Light</span>
-                    </button>
-                    <div class="site-header__links">
-                        <div class="paper-link-group">
-                            <a
-                                href="https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.134.104003"
-                                target="_blank"
-                                rel="noreferrer"
-                            >
-                                Read the paper
-                            </a>
-                            <a
-                                class="oa-badge"
-                                href="https://arxiv.org/abs/2408.12714"
-                                target="_blank"
-                                rel="noreferrer"
-                                aria-label="Open access version on arXiv"
-                            >
-                                OA
-                            </a>
-                        </div>
-                        <a
-                            href="https://www.youtube.com/watch?v=3S_hwkMCx6U&embeds_referring_euri=http%3A%2F%2F127.0.0.1%3A5001%2F"
-                            target="_blank"
-                            rel="noreferrer"
-                        >
-                            Watch the talk
-                        </a>
-                    </div>
-                </div>
+        </div>
+    </header>
+
+    <div class="page">
+        <section class="hero" aria-labelledby="hero-title">
+            <div class="hero__kicker">
+                <span class="dot" aria-hidden="true"></span>
+                <span>Drop impact · Weber–Ohnesorge scaling</span>
             </div>
-        </header>
+            <div class="hero__wordmark-line">
+                <span class="hero-title">SL theory</span>
+                <span class="hero__wordmark-rest">Drop-impact calculator</span>
+            </div>
+            <h1 id="hero-title" class="hero__sentence">
+                Unifying theory of scaling in drop impact:
+                <em>forces</em> and <em>maximum spreading diameter</em>.
+            </h1>
+            <p class="lede">
+                Enter the Weber number \(We\) and Ohnesorge number \(Oh\) of an
+                impacting drop. The page returns the Reynolds number, the
+                dissipation regime on the \(We\)–\(Oh\) map, and the predicted
+                maximum spreading factor \(\beta\) from the theory of Sanjay and
+                Lohse (2025).
+            </p>
+            <div class="hero__ctas">
+                <a
+                    class="btn"
+                    href="https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.134.104003"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    Read the paper
+                </a>
+                <a
+                    class="btn-ghost"
+                    href="https://arxiv.org/abs/2408.12714"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    Open access on arXiv
+                </a>
+                <a
+                    class="btn-ghost"
+                    href="https://www.youtube.com/watch?v=3S_hwkMCx6U"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    Watch the talk
+                </a>
+            </div>
+            <dl class="hero__meta">
+                <div>
+                    <dt>Inputs</dt>
+                    <dd>\(We\), \(Oh\) <small>Two dimensionless groups</small></dd>
+                </div>
+                <div>
+                    <dt>Outputs</dt>
+                    <dd>\(Re\), regime, \(\beta\) <small>Rounded to two decimals</small></dd>
+                </div>
+                <div>
+                    <dt>Validity</dt>
+                    <dd>\(1 \leq We \leq 10^3\) <small>\(10^{-3} \leq Oh \leq 10^2\)</small></dd>
+                </div>
+            </dl>
+        </section>
 
         <main class="layout">
-            <section class="content-column">
-                <section class="panel panel--intro">
-                    <div class="panel-heading">
-                        <p class="panel-kicker">Overview</p>
-                        <h2>What this page is for</h2>
+            <div class="content-column">
+                <section class="panel" aria-labelledby="overview-heading">
+                    <div class="panel-head">
+                        <span class="eyebrow">Overview</span>
+                        <h2 id="overview-heading">What the theory predicts</h2>
                     </div>
                     <div class="reading-block">
                         <p>
-                            Drop impact on a rigid surface depends on the
-                            droplet velocity, size, and material properties.
-                            This calculator focuses on the two dimensionless
-                            control parameters that organize the scaling
-                            theory: the Weber number \(We\), which compares
-                            inertia and surface tension, and the Ohnesorge
-                            number \(Oh\), which measures viscous effects.
+                            Drop impact on a rigid surface depends on the drop
+                            velocity, size and material properties. Two
+                            dimensionless groups organise the scaling theory: the
+                            Weber number \(We\), which compares inertia with
+                            surface tension, and the Ohnesorge number \(Oh\),
+                            which measures viscous effects.
                         </p>
                         <p>
-                            The theory is built from direct numerical
-                            simulations spanning \(1 \leq We \leq 10^3\) and
+                            The theory is built from direct numerical simulations
+                            spanning \(1 \leq We \leq 10^3\) and
                             \(10^{-3} \leq Oh \leq 10^2\). It separates the
                             dominant dissipation mechanisms across the impact
-                            process and predicts the maximum spreading diameter
-                            while clarifying why viscous dissipation remains
-                            important even at low \(Oh\).
+                            process and predicts the maximum spreading diameter,
+                            showing why viscous dissipation remains important even
+                            at low \(Oh\).
                         </p>
                     </div>
                 </section>
 
-                <section class="panel">
-                    <div class="panel-heading">
-                        <p class="panel-kicker">Inputs</p>
-                        <h2>Dimensionless groups</h2>
+                <section class="panel" aria-labelledby="inputs-heading">
+                    <div class="panel-head">
+                        <span class="eyebrow">Inputs</span>
+                        <h2 id="inputs-heading">Dimensionless groups</h2>
                     </div>
                     <div class="definition-grid">
-                        <article class="definition-card">
+                        <article class="card definition-card">
                             <p class="definition-card__title">Weber number</p>
                             <p class="definition-card__formula">
-                                \(We = \frac{\rho V_0^2 D_0}{\gamma}\)
+                                \(We = \dfrac{\rho V_0^2 D_0}{\gamma}\)
                             </p>
                             <p class="definition-card__text">
-                                Higher values indicate stronger inertial forcing
-                                relative to surface tension.
+                                Inertia relative to surface tension. Larger values
+                                mean stronger inertial forcing of the spreading
+                                lamella.
                             </p>
                         </article>
-                        <article class="definition-card">
+                        <article class="card definition-card">
                             <p class="definition-card__title">Ohnesorge number</p>
                             <p class="definition-card__formula">
-                                \(Oh = \frac{\mu}{\sqrt{\rho \gamma D_0}}\)
+                                \(Oh = \dfrac{\mu}{\sqrt{\rho \gamma D_0}}\)
                             </p>
                             <p class="definition-card__text">
-                                Higher values indicate stronger viscous
-                                influence during impact.
+                                Viscous relative to inertio-capillary effects.
+                                Larger values mean stronger viscous damping during
+                                impact.
                             </p>
                         </article>
                     </div>
                 </section>
 
-                <section class="panel">
-                    <div class="panel-heading">
-                        <p class="panel-kicker">Phase diagram</p>
-                        <h2>Weber-Ohnesorge parameter space</h2>
+                <section class="panel" id="phase-diagram-section" aria-labelledby="diagram-heading">
+                    <div class="panel-head">
+                        <span class="eyebrow">Phase diagram</span>
+                        <h2 id="diagram-heading">Weber–Ohnesorge parameter space</h2>
                     </div>
-                    <div class="diagram-shell">
+                    <figure class="diagram-shell">
                         <img
                             id="phase-diagram"
                             class="phase-diagram"
                             src="/regime-diagram.svg?theme=light"
-                            alt="Phase diagram of the four impact regimes in Weber-Ohnesorge parameter space"
+                            alt="Phase diagram of the four impact regimes in Weber–Ohnesorge parameter space"
                         >
-                    </div>
+                        <figcaption>
+                            Regimes I–IV as used by the classifier, with boundaries
+                            at \(Oh = We^{-2}\), \(Oh = We^{-3/4}\) and
+                            \(Oh = We^{1/2}\). Valid inputs in the calculator are
+                            marked on the map.
+                        </figcaption>
+                    </figure>
                 </section>
 
-                <section class="panel">
-                    <div class="panel-heading panel-heading--split">
+                <section class="panel" id="talk" aria-labelledby="talk-heading">
+                    <div class="panel-head panel-head--split">
                         <div>
-                            <p class="panel-kicker">Talk</p>
-                            <h2>Video overview</h2>
+                            <span class="eyebrow">Talk</span>
+                            <h2 id="talk-heading">Video overview</h2>
                         </div>
                         <a
-                            class="inline-link"
-                            href="https://www.youtube.com/watch?v=3S_hwkMCx6U&embeds_referring_euri=http%3A%2F%2F127.0.0.1%3A5001%2F"
+                            class="btn-ghost"
+                            href="https://www.youtube.com/watch?v=3S_hwkMCx6U"
                             target="_blank"
-                            rel="noreferrer"
+                            rel="noopener noreferrer"
                         >
                             Open on YouTube
                         </a>
@@ -181,7 +249,7 @@
                         <iframe
                             src="https://www.youtube-nocookie.com/embed/3S_hwkMCx6U"
                             title="Drop impact theory video overview"
-                            frameborder="0"
+                            loading="lazy"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                             referrerpolicy="strict-origin-when-cross-origin"
                             allowfullscreen
@@ -189,64 +257,69 @@
                     </div>
                 </section>
 
-                <section class="panel" id="batch-section">
-                    <div class="panel-heading">
-                        <p class="panel-kicker">Batch</p>
-                        <h2>CSV upload</h2>
-                    </div>
-                    <div class="reading-block">
-                        <p>
-                            Upload a CSV with <code>We</code> and <code>Oh</code> header
-                            columns. The model fills in <code>beta</code> as the third
-                            column for every row and returns the completed file.
+                <section class="panel" id="batch-section" aria-labelledby="batch-heading">
+                    <div class="panel-head">
+                        <span class="eyebrow">Batch</span>
+                        <h2 id="batch-heading">CSV upload</h2>
+                        <p class="panel-sub">
+                            Upload a CSV with <code>We</code> and <code>Oh</code>
+                            header columns. The model fills in <code>beta</code>
+                            as the third column for every row and returns the
+                            completed file. Extra columns are preserved unchanged.
                         </p>
                     </div>
                     <form id="batch-form" class="batch-form" novalidate>
                         <div class="field">
-                            <label for="csv-file">CSV file</label>
+                            <label class="field-label" for="csv-file">CSV file</label>
                             <p class="field-hint">
-                                First row must be a header containing <code>We</code> and
-                                <code>Oh</code>. Extra columns are preserved unchanged.
+                                First row must be a header containing <code>We</code>
+                                and <code>Oh</code>. Rows outside the theory range are
+                                marked <code>error</code>. Uploads are limited to 1 MB.
                             </p>
                             <input
+                                class="input input--file"
                                 type="file"
                                 id="csv-file"
                                 name="file"
                                 accept=".csv"
                             >
                         </div>
-                        <button type="submit" id="batch-button">
-                            Upload &amp; calculate
-                        </button>
+                        <div class="batch-actions">
+                            <button class="btn" type="submit" id="batch-button">
+                                Upload and calculate
+                            </button>
+                            <p class="batch-status" id="batch-status" role="status" aria-live="polite"></p>
+                        </div>
                     </form>
 
-                    <div class="batch-status-bar" id="batch-status" aria-live="polite"></div>
-
                     <div class="batch-preview" id="batch-preview-wrap" hidden>
-                        <p class="panel-kicker batch-preview__kicker">Preview — first 10 rows</p>
-                        <div class="batch-table-wrap">
+                        <span class="eyebrow">Preview · first 10 rows</span>
+                        <div class="table-wrap" tabindex="0" role="region" aria-label="Batch results preview, scroll horizontally if needed">
                             <table id="batch-preview-table"></table>
                         </div>
-                        <button class="batch-download-btn" id="batch-download-btn" type="button">
-                            Download full CSV
-                        </button>
+                        <div>
+                            <button class="btn-ghost" id="batch-download-btn" type="button">
+                                Download full CSV
+                            </button>
+                        </div>
                     </div>
                 </section>
-            </section>
+            </div>
 
             <aside class="calculator-column">
-                <section class="panel panel--sticky">
-                    <div class="panel-heading">
-                        <p class="panel-kicker">Calculator</p>
-                        <h2>Evaluate a case</h2>
+                <section class="panel panel--sticky" id="calculator" aria-labelledby="calculator-heading">
+                    <div class="panel-head">
+                        <span class="eyebrow">Calculator</span>
+                        <h2 id="calculator-heading">Evaluate a case</h2>
                     </div>
                     <form id="impact-form" class="calculator-form" novalidate>
                         <div class="field">
-                            <label for="weber-number">Weber number</label>
+                            <label class="field-label" for="weber-number">Weber number</label>
                             <p class="field-hint">
-                                Valid range: \(1 \leq We \leq 10^3\), for example 150.
+                                Valid range \(1 \leq We \leq 10^3\), for example 150.
                             </p>
                             <input
+                                class="input"
                                 type="number"
                                 id="weber-number"
                                 name="weberNumber"
@@ -255,15 +328,17 @@
                                 max="1000"
                                 step="any"
                                 inputmode="decimal"
+                                autocomplete="off"
                                 required
                             >
                         </div>
                         <div class="field">
-                            <label for="ohnesorge-number">Ohnesorge number</label>
+                            <label class="field-label" for="ohnesorge-number">Ohnesorge number</label>
                             <p class="field-hint">
-                                Valid range: \(10^{-3} \leq Oh \leq 10^2\), for example 0.08.
+                                Valid range \(10^{-3} \leq Oh \leq 10^2\), for example 0.08.
                             </p>
                             <input
+                                class="input"
                                 type="number"
                                 id="ohnesorge-number"
                                 name="ohnesorgeNumber"
@@ -272,106 +347,97 @@
                                 max="100"
                                 step="any"
                                 inputmode="decimal"
+                                autocomplete="off"
                                 required
                             >
                         </div>
-                        <button id="process-button" type="submit">
+                        <button id="process-button" class="btn btn--block" type="submit">
                             Compute response
                         </button>
                     </form>
 
-                    <section class="result-panel" aria-live="polite">
-                        <div class="result-panel__header">
-                            <h3>Results</h3>
-                            <p id="result-status">Enter values to begin.</p>
+                    <section class="result-block" aria-live="polite" aria-labelledby="results-heading">
+                        <div class="result-head">
+                            <span class="eyebrow" id="results-heading">Results</span>
+                            <p id="result-status" class="result-status">Enter values to begin.</p>
                         </div>
                         <div id="result" class="result-grid" data-state="idle">
-                            <article class="metric-card">
-                                <p class="metric-card__label">Reynolds number</p>
-                                <p id="result-re" class="metric-card__value">--</p>
-                            </article>
-                            <article class="metric-card">
-                                <p class="metric-card__label">Regime</p>
-                                <p id="result-regime" class="metric-card__value">--</p>
-                            </article>
-                            <article class="metric-card">
-                                <p class="metric-card__label">Predicted \(\beta\)</p>
-                                <p id="result-beta" class="metric-card__value">--</p>
-                            </article>
+                            <div class="stat">
+                                <p id="result-re" class="stat__v">–</p>
+                                <p class="stat__k">Reynolds number \(Re\)</p>
+                            </div>
+                            <div class="stat">
+                                <p id="result-regime" class="stat__v">–</p>
+                                <p class="stat__k">Impact regime</p>
+                            </div>
+                            <div class="stat">
+                                <p id="result-beta" class="stat__v">–</p>
+                                <p class="stat__k">Predicted \(\beta\)</p>
+                            </div>
                         </div>
-                        <p id="result-note" class="result-note">
+                        <p id="result-note" class="result-note" data-tone="idle">
                             Results appear here after a successful calculation.
                             Values are rounded to two decimals.
                         </p>
                     </section>
 
-                    <section class="output-panel">
-                        <div class="panel-heading panel-heading--compact">
-                            <p class="panel-kicker">Outputs</p>
-                            <h3>What the model returns</h3>
+                    <dl class="output-list" aria-label="What the model returns">
+                        <div>
+                            <dt>\(Re\)</dt>
+                            <dd>Computed from \(Re = \sqrt{We} / Oh\).</dd>
                         </div>
-                        <div class="output-grid output-grid--rail">
-                            <article class="output-card">
-                                <p class="output-card__title">Reynolds number</p>
-                                <p class="output-card__text">
-                                    Computed from \(Re = \sqrt{We} / Oh\).
-                                </p>
-                            </article>
-                            <article class="output-card">
-                                <p class="output-card__title">Impact regime</p>
-                                <p class="output-card__text">
-                                    Classified into regimes I through IV from the
-                                    \(We\)-\(Oh\) map.
-                                </p>
-                            </article>
-                            <article class="output-card output-card--wide">
-                                <p class="output-card__title">Predicted \(\beta\)</p>
-                                <p class="output-card__text">
-                                    The model prediction for maximum spreading.
-                                </p>
-                            </article>
+                        <div>
+                            <dt>Regime</dt>
+                            <dd>I–IV, from the position on the \(We\)–\(Oh\) map.</dd>
                         </div>
-                    </section>
+                        <div>
+                            <dt>\(\beta\)</dt>
+                            <dd>Model prediction for the maximum spreading factor.</dd>
+                        </div>
+                    </dl>
                 </section>
             </aside>
         </main>
 
-        <footer class="citation-banner panel">
-            <div class="citation-banner__header">
-                <div>
-                    <p class="panel-kicker">Citation</p>
-                    <h2>Cite this work</h2>
+        <section class="panel citation" id="cite" aria-labelledby="cite-heading">
+            <div class="citation-head">
+                <div class="panel-head">
+                    <span class="eyebrow">Citation</span>
+                    <h2 id="cite-heading">Cite this work</h2>
                 </div>
-                <div class="citation-banner__links">
+                <div class="citation-chips">
                     <a
-                        class="citation-chip"
+                        class="chip chip--brand"
                         href="https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.134.104003"
                         target="_blank"
-                        rel="noreferrer"
+                        rel="noopener noreferrer"
                     >
-                        PRL
+                        Phys. Rev. Lett. · 2025
                     </a>
                     <a
-                        class="citation-chip"
+                        class="chip chip--blue"
                         href="https://arxiv.org/abs/2408.12714"
                         target="_blank"
-                        rel="noreferrer"
+                        rel="noopener noreferrer"
                     >
-                        arXiv
+                        arXiv · 2408.12714
                     </a>
                 </div>
             </div>
-            <p class="citation-banner__text">
+            <p class="citation-text">
                 Vatsal Sanjay and Detlef Lohse, “Unifying Theory of Scaling in
                 Drop Impact: Forces and Maximum Spreading Diameter,”
-                <em>Physical Review Letters</em> <strong>134</strong>(10),
-                104003 (2025).
+                <em>Physical Review Letters</em> 134(10), 104003 (2025).
+            </p>
+            <p class="citation-doi">
+                <span>DOI</span>
+                <code class="copyable" role="button" tabindex="0" title="Click to copy" aria-label="Copy DOI 10.1103/PhysRevLett.134.104003">10.1103/PhysRevLett.134.104003</code>
             </p>
             <details class="bibtex-card">
                 <summary>BibTeX entry</summary>
                 <div class="bibtex-card__toolbar">
                     <span class="bibtex-card__hint">Scholar-style export</span>
-                    <button id="bibtex-copy" class="bibtex-copy" type="button">
+                    <button id="bibtex-copy" class="btn-ghost" type="button">
                         Copy BibTeX
                     </button>
                 </div>
@@ -390,7 +456,51 @@
   url = {https://link.aps.org/doi/10.1103/PhysRevLett.134.104003}
 }</code></pre>
             </details>
-        </footer>
+        </section>
     </div>
+
+    <footer class="site-footer">
+        <div class="site-footer__wrap">
+            <div class="site-footer__top">
+                <div class="site-footer__brand">
+                    <a class="site-footer__mark" href="https://comphy-lab.org/" aria-label="CoMPhy Lab home">
+                        <img src="{{ url_for('static', filename='comphy-lab-mark.png') }}" alt="" loading="lazy" decoding="async">
+                        <span>CoMPhy Lab</span>
+                    </a>
+                    <p class="site-footer__tag">
+                        Computational Multiphase Physics — a research group at
+                        Durham University's Department of Physics, working on
+                        non-Newtonian free-surface flows and soft-matter
+                        singularities.
+                    </p>
+                </div>
+                <nav class="site-footer__col" aria-label="This tool">
+                    <h4>This tool</h4>
+                    <a href="https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.134.104003" target="_blank" rel="noopener noreferrer">Paper · Phys. Rev. Lett.</a>
+                    <a href="https://arxiv.org/abs/2408.12714" target="_blank" rel="noopener noreferrer">Preprint · arXiv</a>
+                    <a href="https://www.youtube.com/watch?v=3S_hwkMCx6U" target="_blank" rel="noopener noreferrer">Talk · YouTube</a>
+                    <a href="https://github.com/comphy-lab/sl25" target="_blank" rel="noopener noreferrer">Source · GitHub</a>
+                </nav>
+                <nav class="site-footer__col" aria-label="CoMPhy Lab">
+                    <h4>CoMPhy Lab</h4>
+                    <a href="https://comphy-lab.org/research" target="_blank" rel="noopener noreferrer">Research</a>
+                    <a href="https://comphy-lab.org/team/" target="_blank" rel="noopener noreferrer">Team</a>
+                    <a href="https://blogs.comphy-lab.org/" target="_blank" rel="noopener noreferrer">Blog</a>
+                    <a href="https://github.com/comphy-lab" target="_blank" rel="noopener noreferrer">GitHub · CoMPhy</a>
+                </nav>
+            </div>
+            <div class="site-footer__legal">
+                <div>
+                    © 2019–<span id="footer-year">2026</span> CoMPhy Lab · Maintained by
+                    <a href="https://www.durham.ac.uk/staff/vatsal-sanjay/" target="_blank" rel="noopener noreferrer">V. Sanjay</a>
+                </div>
+                <div>
+                    <a href="https://github.com/comphy-lab/sl25" target="_blank" rel="noopener noreferrer">Edit on GitHub</a>
+                    <span aria-hidden="true"> · </span>
+                    <a href="#top">Back to top ↑</a>
+                </div>
+            </div>
+        </div>
+    </footer>
 </body>
 </html>

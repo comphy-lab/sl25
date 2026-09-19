@@ -10,6 +10,7 @@ This repository is a small Flask website for the SL theory drop-impact calculato
 - `regimeDecide.py` classifies the regime, predicts `predBeta` on `/regime`, and serves `/regime-diagram.svg`.
 - `phase_diagram_svg.py` renders the server-side SVG for the Weber-Ohnesorge regime map.
 - `templates/index.html` is the only frontend page, with `static/site.css` and `static/site.js` as load-bearing frontend assets.
+- `static/tokens.css` is vendored verbatim from `comphy-lab/comphy-design-system`; the header names the upstream commit. Never edit it or redefine a token in `site.css`; reference the variables. Paper (`--c-paper`), not `#fff`; teal (`--c-accent-teal`) is the only interactive accent; the brand gradient clips into the hero wordmark only.
 
 ## Working Rules
 
@@ -44,7 +45,11 @@ This repository is a small Flask website for the SL theory drop-impact calculato
 ## Repo Notes
 
 - The frontend loads MathJax from an external CDN and embeds a YouTube iframe;
-  the obsolete polyfill has been removed.
+  the obsolete polyfill has been removed. Fonts come from Google Fonts with the
+  same family set as comphy-lab.org (Cormorant Garamond, Fraunces, IBM Plex
+  Sans, IBM Plex Mono).
+- `phase_diagram_svg.py` keeps its palette aligned with `static/tokens.css`;
+  update both together when the design system changes a core colour.
 - The Worker has a 22-test Node suite and the WSGI boundary has nine Python
   origin/compatibility tests. Python dependency versions remain unpinned.
 - Requests are capped at 1 MB via `MAX_CONTENT_LENGTH` to keep batch uploads bounded.

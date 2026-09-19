@@ -17,40 +17,44 @@ MIN_OH = 1e-3
 MAX_OH = 1e2
 
 
+# Palette drawn from the CoMPhy Lab design tokens (static/tokens.css) so the
+# server-rendered figure sits on the same paper/ink surfaces as the page.
+# Regime fills run cool to warm through the brand hues: teal (I), brand blue
+# (II), brand purple (III), coral (IV). Matplotlib accepts #RRGGBBAA.
 THEMES = {
     "light": {
-        "figure_face": "#fffdfa",
-        "axes_face": "#fffdfa",
-        "frame": "#d4cabb",
-        "grid": "#d9d1c6",
-        "text": "#2b261f",
-        "axis": "#6f6559",
-        "regime_i_fill": "#d9efe3",
-        "regime_ii_fill": "#d7e4fa",
-        "regime_iii_fill": "#f5eec8",
-        "regime_iv_fill": "#f4d6d7",
-        "boundary": "#5d998e",
-        "point": "#117c52",
-        "point_ring": "#7dbba0",
-        "fill_alpha": 0.92,
-        "grid_alpha": 0.42,
+        "figure_face": "#fffdf9",      # --c-surface-strong
+        "axes_face": "#fffdf9",
+        "frame": "#0f0c082e",          # --c-border-strong
+        "grid": "#0f0c08",             # --fg-strong at grid_alpha
+        "text": "#1f1a15",             # --fg-1
+        "axis": "#625648",             # --fg-2
+        "regime_i_fill": "#254c4a",    # --c-accent-teal
+        "regime_ii_fill": "#0056b3",   # --c-brand-blue
+        "regime_iii_fill": "#68236d",  # --c-brand-purple
+        "regime_iv_fill": "#cf4900",   # --c-accent-coral
+        "boundary": "#625648",         # --fg-2
+        "point": "#254c4a",            # --c-accent-teal
+        "point_ring": "#254c4a",
+        "fill_alpha": 0.16,
+        "grid_alpha": 0.09,
     },
     "dark": {
-        "figure_face": "#191620",
-        "axes_face": "#211d2c",
-        "frame": "#4f4964",
-        "grid": "#6f6883",
-        "text": "#f4eef8",
-        "axis": "#efe7f5",
-        "regime_i_fill": "#4e8176",
-        "regime_ii_fill": "#6a84b8",
-        "regime_iii_fill": "#ae8f4a",
-        "regime_iv_fill": "#9d677d",
-        "boundary": "#e1b7e8",
-        "point": "#73ddb3",
-        "point_ring": "#c084c8",
-        "fill_alpha": 0.46,
-        "grid_alpha": 0.24,
+        "figure_face": "#1c1915",      # --c-surface-strong (dark)
+        "axes_face": "#1c1915",
+        "frame": "#f8f4ec29",          # --c-border-strong (dark)
+        "grid": "#f8f4ec",             # --fg-strong (dark) at grid_alpha
+        "text": "#e6dfd0",             # --fg-1 (dark)
+        "axis": "#e6dfd0",
+        "regime_i_fill": "#6ac2bd",    # --c-accent-teal (dark)
+        "regime_ii_fill": "#8fb8ff",   # dark-theme link blue used by tokens.css
+        "regime_iii_fill": "#d99adc",  # dark-theme chip--brand ink used by tokens.css
+        "regime_iv_fill": "#ff9966",   # dark-theme chip--coral ink used by tokens.css
+        "boundary": "#9a8e7d",         # --fg-2 (dark)
+        "point": "#6ac2bd",            # --c-accent-teal (dark)
+        "point_ring": "#6ac2bd",
+        "fill_alpha": 0.24,
+        "grid_alpha": 0.08,
     },
 }
 
