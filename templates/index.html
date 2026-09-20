@@ -29,13 +29,9 @@
         })();
     </script>
     <!-- CoMPhy Lab type roles: Cormorant italic (hero wordmark only) · Fraunces (headings)
-         · IBM Plex Sans (body, UI) · IBM Plex Mono (code, DOI). Same set as comphy-lab.org. -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,500;1,600&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
-        rel="stylesheet"
-    >
+         · IBM Plex Sans (body, UI) · IBM Plex Mono (code, DOI). Same set as comphy-lab.org.
+         Self-hosted pack in static/fonts/ (no Google Fonts CDN). -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='fonts/fonts.css') }}">
     <!-- Design-system tokens first, page styles second. site.css only references tokens. -->
     <link rel="stylesheet" href="{{ url_for('static', filename='tokens.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}">

@@ -39,12 +39,13 @@ provenance header naming the upstream commit; do not edit it here. Change a
 core colour in the design-system repository, then re-vendor the file.
 `static/site.css` composes the token primitives (`.panel`, `.card`, `.eyebrow`,
 `.btn`, `.field`, `.input`, `.chip`, `.hero-title`) into the calculator layout
-and never redefines a token. The page loads the same Google Fonts set as
-comphy-lab.org (Cormorant Garamond for the hero wordmark, Fraunces for
-headings, IBM Plex Sans and Mono for body and code). `phase_diagram_svg.py`
-draws the server-side SVG with the same paper, ink and brand hues, so the
-figure matches the page in both themes. The theme choice is stored under the
-shared `comphy-theme` key and falls back to the OS preference.
+and never redefines a token. Brand webfonts are self-hosted under
+`static/fonts/` (Cormorant Garamond for the hero wordmark, Fraunces for
+headings, IBM Plex Sans and Mono for body and code), loaded via
+`static/fonts/fonts.css` before `tokens.css`. No Google Fonts CDN.
+`phase_diagram_svg.py` draws the server-side SVG with the same paper, ink and
+brand hues, so the figure matches the page in both themes. The theme choice is
+stored under the shared `comphy-theme` key and falls back to the OS preference.
 
 ## Local run
 
