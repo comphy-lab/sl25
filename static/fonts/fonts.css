@@ -70,7 +70,7 @@
 
 /* latin-ext */
 @font-face {
-  font-family: "Fraunces";
+  font-family: Fraunces;
   font-style: normal;
   font-weight: 600;
   font-display: swap;
@@ -83,7 +83,7 @@
 
 /* latin */
 @font-face {
-  font-family: "Fraunces";
+  font-family: Fraunces;
   font-style: normal;
   font-weight: 600;
   font-display: swap;
