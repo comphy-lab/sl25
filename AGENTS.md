@@ -45,9 +45,9 @@ This repository is a small Flask website for the SL theory drop-impact calculato
 ## Repo Notes
 
 - The frontend loads MathJax from an external CDN and embeds a YouTube iframe;
-  the obsolete polyfill has been removed. Fonts come from Google Fonts with the
-  same family set as comphy-lab.org (Cormorant Garamond, Fraunces, IBM Plex
-  Sans, IBM Plex Mono).
+  the obsolete polyfill has been removed. Brand webfonts are self-hosted under
+  `static/fonts/` (Cormorant Garamond, Fraunces, IBM Plex Sans, IBM Plex Mono)
+  via `static/fonts/fonts.css`; do not reintroduce Google Fonts CDN links.
 - `phase_diagram_svg.py` keeps its palette aligned with `static/tokens.css`;
   update both together when the design system changes a core colour.
 - The Worker has a 22-test Node suite and the WSGI boundary has nine Python
