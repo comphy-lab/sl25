@@ -146,6 +146,39 @@ the explicit local entry point and preserve `HOST`, `PORT` and loopback-only
 debug behaviour. Importing `app` through a WSGI server enables the origin guard
 even when Vercel's environment markers are absent.
 
+### Production release and rollback receipt
+
+This site has two production releases: the Vercel Python origin and the
+Cloudflare `sl2-proxy` Worker. Record them as one compatible pair after a
+change. The release receipt must contain:
+
+1. The Git `main` commit, passing Python origin tests and Worker tests, and
+   the Vercel production deployment ID, source commit and production alias
+   read back from Vercel. A successful build alone does not prove which origin
+   the alias serves.
+2. The active Cloudflare Worker version ID, the custom-domain and legacy route
+   assignments read back from Cloudflare, and confirmation that the
+   `SL25_ORIGIN_TOKEN` secret binding exists. Record presence only, never its
+   value or the verifier digest.
+3. Live checks through `https://sl25.comphy-lab.org/`: the page, a local
+   static asset, the phase diagram and representative `/add`, `/regime` and
+   `/batch` requests. Check the legacy `/sl25` and `/sl2` GET/HEAD redirects
+   and the retained root API paths. Confirm the rate-limit bindings and
+   unrelated-path denial from the deployed Worker configuration and its
+   automated tests; do not exhaust the production rate limits for a receipt.
+4. Separate origin-isolation checks: an unauthenticated request to the Vercel
+   production alias is denied by the WSGI guard, and older/generated/preview
+   deployment URLs remain under Vercel Standard Protection. Confirm
+   `workers.dev` and Worker preview URLs are still disabled.
+
+For a failed release, restore the last verified **pair**. Promote the previous
+known-good Vercel deployment if the origin changed; roll back to the previous
+known-good Worker version if the proxy changed. Keep the Worker secret and
+Vercel verifier compatible throughout. Re-run the public route and origin
+isolation checks, and record the restored deployment and Worker version IDs.
+Credential rotation needs its staged verifier procedure above; rolling back
+only one side of a rotation can make the public site fail closed.
+
 ### Known limitations
 
 - The canonical public calculator remains callable within its generous limits;
