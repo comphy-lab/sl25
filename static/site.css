@@ -169,9 +169,8 @@ button, summary { cursor: pointer; }
   display: inline-block;
   padding-right: 0.08em; /* keep the italic swash inside the clip box */
 }
-/* The brand gradient's two blue-violet stops sink into dark paper. Lift the
-   rendered wordmark rather than redefining --hero-grad-* locally. */
-:root[data-theme="dark"] .hero .hero-title { filter: brightness(1.55) saturate(0.85); }
+/* Dark wordmark contrast is the tokens.css --hero-grad-* override.
+   Do not reintroduce a brightness filter on the clipped title. */
 .hero__wordmark-rest {
   font-family: var(--t-serif);
   font-weight: 500;
