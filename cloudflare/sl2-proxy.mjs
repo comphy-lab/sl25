@@ -15,21 +15,28 @@ const RATE_LIMITED_PATHS = new Map([
   ["/batch", "BATCH_RATE_LIMITER"],
 ]);
 
-function normalizedPath(requestPath) {
-  let normalizedPath;
+export function normalizedPath(requestPath) {
+  let path;
   try {
-    // decodeURI resolves accepted unreserved aliases such as %61 without
-    // decoding reserved separators such as %2F into a different route.
-    normalizedPath = decodeURI(requestPath);
+    path = decodeURI(requestPath).replace(/\/{2,}/g, "/");
   } catch {
-    normalizedPath = requestPath;
+    return null;
   }
-  return normalizedPath.replace(/\/{2,}/g, "/");
+  // Proxy only an unambiguous path: never forward residual percent escapes,
+  // separators other parsers may reinterpret, or dot segments.
+  if (!path.startsWith("/") || /[^A-Za-z0-9._~/-]/.test(path) ||
+      path.split("/").some((part) => part === "." || part === "..")) {
+    return null;
+  }
+  return path;
+}
+
+function calculationPath(path) {
+  return path?.startsWith("/sl25/") ? path.slice("/sl25".length) : path;
 }
 
 export function canonicalCalculationPath(requestPath) {
-  const path = normalizedPath(requestPath);
-  return path.startsWith("/sl25/") ? path.replace(/^\/sl25/, "") : path;
+  return calculationPath(normalizedPath(requestPath));
 }
 
 export function rateLimitedResponse() {
@@ -48,13 +55,12 @@ export function rateLimitedResponse() {
   );
 }
 
-export async function applyRateLimit(request, env) {
+export async function applyRateLimit(request, env, path = normalizedPath(new URL(request.url).pathname)) {
   if (request.method !== "POST") {
     return null;
   }
 
-  const requestPath = new URL(request.url).pathname;
-  const canonicalPath = canonicalCalculationPath(requestPath);
+  const canonicalPath = calculationPath(path);
   const bindingName = RATE_LIMITED_PATHS.get(canonicalPath);
   if (!bindingName) {
     return null;
@@ -85,8 +91,8 @@ function upstreamRequestInit(request, originToken) {
   return init;
 }
 
-function legacyRedirect(url, pathPrefix) {
-  const canonicalPath = url.pathname.replace(pathPrefix, "") || "/";
+function legacyRedirect(url, path, pathPrefix) {
+  const canonicalPath = path.replace(pathPrefix, "") || "/";
   return Response.redirect(
     `https://${CANONICAL_HOST}${canonicalPath}${url.search}`,
     308,
@@ -101,7 +107,7 @@ function isCanonicalPath(path) {
     path === "/batch" ||
     path === "/regime-diagram" ||
     path === "/regime-diagram.svg" ||
-    path.startsWith("/static/")
+    /^\/static\/(?:[A-Za-z0-9._~-]+\/)*[A-Za-z0-9._~-]+$/.test(path)
   );
 }
 
@@ -116,9 +122,8 @@ function proxyError(status, message, headers = {}) {
   });
 }
 
-async function proxyToVercel(request, path, env, rewriteLegacyHtml = false) {
+async function proxyToVercel(request, upstreamPath, env, rewriteLegacyHtml = false) {
   // Only the public calculator surface may use the Worker's origin credential.
-  const upstreamPath = normalizedPath(path);
   if (!isCanonicalPath(upstreamPath)) {
     return proxyError(404, "Not found.");
   }
@@ -179,21 +184,21 @@ async function proxyToVercel(request, path, env, rewriteLegacyHtml = false) {
 
 export async function handleRequest(request, env) {
   const url = new URL(request.url);
-  const path = url.pathname;
   const redirectsEnabled = env?.LEGACY_REDIRECTS === LEGACY_REDIRECTS_ON;
 
   if (url.hostname !== CANONICAL_HOST && url.hostname !== LEGACY_HOST) {
     return fetch(request);
   }
 
-  if (url.hostname === CANONICAL_HOST && !isCanonicalPath(path)) {
+  const path = normalizedPath(url.pathname);
+  if (path === null || (url.hostname === CANONICAL_HOST && !isCanonicalPath(path))) {
     return new Response("Not found.\n", {
       status: 404,
       headers: { "cache-control": "no-store" },
     });
   }
 
-  const limitedResponse = await applyRateLimit(request, env);
+  const limitedResponse = await applyRateLimit(request, env, path);
   if (limitedResponse) {
     return limitedResponse;
   }
@@ -208,7 +213,7 @@ export async function handleRequest(request, env) {
       redirectsEnabled &&
       (request.method === "GET" || request.method === "HEAD")
     ) {
-      return legacyRedirect(url, /^\/sl2/);
+      return legacyRedirect(url, path, /^\/sl2/);
     }
     const newPath = path.replace(/^\/sl2/, "/sl25") || "/sl25";
     return Response.redirect(url.origin + newPath + (url.search || ""), 308);
@@ -220,7 +225,7 @@ export async function handleRequest(request, env) {
       redirectsEnabled &&
       (request.method === "GET" || request.method === "HEAD")
     ) {
-      return legacyRedirect(url, /^\/sl25/);
+      return legacyRedirect(url, path, /^\/sl25/);
     }
     const strippedPath = path.replace(/^\/sl25/, "") || "/";
     return proxyToVercel(request, strippedPath, env, true);

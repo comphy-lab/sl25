@@ -1,13 +1,11 @@
 import os
 
 from flask import Flask, jsonify
-from flask_socketio import SocketIO
 from werkzeug.exceptions import RequestEntityTooLarge
 
 from origin_auth import OriginAuthentication
 
 app = Flask(__name__)
-socketio = SocketIO(app)
 
 # Import routes from other files
 from calculateReynoldsNumber import calculate_bp
@@ -30,6 +28,8 @@ def handle_request_entity_too_large(_error):
     ), 413
 
 def run_local_server():
+    from flask_socketio import SocketIO
+
     host = os.environ.get("HOST", "127.0.0.1")
     port = int(os.environ.get("PORT", "5000"))
     debug_mode = os.getenv("FLASK_DEBUG", "0").strip().lower() in {
@@ -40,7 +40,7 @@ def run_local_server():
     }
     if debug_mode and host not in {"127.0.0.1", "::1", "localhost"}:
         raise SystemExit("FLASK_DEBUG=1 is only supported with loopback HOST values")
-    socketio.run(
+    SocketIO(app).run(
         app,
         host=host,
         port=port,
@@ -53,6 +53,6 @@ def run_local_server():
 if __name__ == '__main__':
     run_local_server()
 else:
-    # Wrap after SocketIO so its transport cannot bypass the origin boundary.
+    # The production WSGI app is HTTP-only; SocketIO is local-runner only.
     # Imported deployments are protected even without platform environment flags.
     app.wsgi_app = OriginAuthentication(app.wsgi_app)

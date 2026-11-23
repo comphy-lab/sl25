@@ -95,11 +95,12 @@ class CalculatorCompatibilityTests(unittest.TestCase):
         cls.module.app.wsgi_app = cls.original
         cls.temporary.cleanup()
 
-    def test_imported_application_and_socketio_are_protected_without_platform_flags(self):
+    def test_imported_application_exposes_only_authenticated_wsgi(self):
         with patch.dict(os.environ, {}, clear=True):
             self.assertIsInstance(self.original, OriginAuthentication)
             for path in ["/add", "/socket.io/?EIO=4&transport=polling"]:
                 self.assertEqual(self.client.post(path).status_code, 403)
+            self.assertNotIn("socketio", self.module.app.extensions)
 
     def test_calculations_and_validation_preserve_results(self):
         data = {"weberNumber": 10, "ohnesorgeNumber": 0.1}
