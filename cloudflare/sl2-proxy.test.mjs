@@ -5,6 +5,7 @@ import test from "node:test";
 import {
   applyRateLimit,
   canonicalCalculationPath,
+  normalizedPath,
   handleRequest,
   rateLimitedResponse,
 } from "./sl2-proxy.mjs";
@@ -113,7 +114,7 @@ test("normalises only accepted slash and unreserved-character aliases", async ()
   assert.equal(canonicalCalculationPath("/sl25//add"), "/add");
   assert.equal(canonicalCalculationPath("/sl25/%61dd"), "/add");
   assert.equal(canonicalCalculationPath("//regime"), "/regime");
-  assert.equal(canonicalCalculationPath("/sl25/%2Fadd"), "/%2Fadd");
+  assert.equal(canonicalCalculationPath("/sl25/%2Fadd"), null);
   assert.equal(canonicalCalculationPath("/sl25/additional"), "/additional");
 
   const env = {
@@ -124,6 +125,14 @@ test("normalises only accepted slash and unreserved-character aliases", async ()
   assert.equal(await applyRateLimit(request("/sl25//add"), env), null);
   assert.equal((await applyRateLimit(request("/sl25/%61dd"), env)).status, 429);
   assert.equal(env.CALC_RATE_LIMITER.calls, 2);
+});
+
+test("path parsing accepts canonical asset names and rejects ambiguous syntax", () => {
+  assert.equal(normalizedPath("/static/fonts/site.woff2"), "/static/fonts/site.woff2");
+  for (const path of ["static/site.css", "/static/./site.css", "/static/../site.css",
+    "/static/bad%", "/static/bad:name", "/static/bad name", "/static/bad%25name"]) {
+    assert.equal(normalizedPath(path), null, path);
+  }
 });
 
 test("does not count GETs, static assets, diagrams, or unrelated prefixes", async () => {
